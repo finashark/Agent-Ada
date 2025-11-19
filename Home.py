@@ -358,10 +358,24 @@ st.markdown("---")
 # ============== TIN TỨC QUAN TRỌNG ==============
 st.markdown("## 📰 Tin tức & Sự kiện quan trọng")
 
+# Debug: Show secrets status
+with st.expander("🔍 Debug: API Status", expanded=False):
+    try:
+        has_secrets = hasattr(st, 'secrets') and "news" in st.secrets
+        st.write(f"Secrets available: {has_secrets}")
+        if has_secrets:
+            st.write(f"NewsAPI key: {'✓ Present' if st.secrets['news'].get('newsapi_key') else '✗ Missing'}")
+            st.write(f"Alpha Vantage key: {'✓ Present' if st.secrets['news'].get('alphavantage_key') else '✗ Missing'}")
+            st.write(f"Finnhub key: {'✓ Present' if st.secrets['news'].get('finnhub_key') else '✗ Missing'}")
+    except Exception as e:
+        st.error(f"Error checking secrets: {e}")
+
 with st.spinner("Đang tải tin tức từ NewsAPI, Alpha Vantage, Finnhub..."):
     try:
         # Lấy tin tức thực từ API
         news_items = get_market_news(hours_back=48, max_items=10)
+        
+        st.write(f"DEBUG: Received {len(news_items) if news_items else 0} items")  # Debug line
         
         if news_items and len(news_items) > 0:
             st.success(f"✅ Đã tải {len(news_items)} tin tức mới nhất từ các nguồn uy tín")
@@ -486,6 +500,14 @@ st.markdown("""
 # Sidebar
 with st.sidebar:
     st.markdown("### ⚙️ Cài đặt")
+    
+    # Clear cache button
+    if st.button("🔄 Xóa cache & tải lại tin tức"):
+        st.cache_data.clear()
+        st.success("✅ Đã xóa cache!")
+        st.rerun()
+    
+    st.markdown("---")
     
     # Timezone selector
     tz_options = ["Asia/Ho_Chi_Minh", "Asia/Singapore", "UTC", "America/New_York", "Europe/London"]

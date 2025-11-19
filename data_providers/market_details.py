@@ -355,8 +355,45 @@ def calculate_stock_score(ticker: str, pct_change: float, vol_ratio: float, has_
     return score
 
 
-@st.cache_data(ttl=600, show_spinner=False)
-def build_top10_equities(universe: str = "NASDAQ Large-Cap") -> EquityTop10:
+def _get_fallback_top10() -> list[EquityItem]:
+    """
+    Fallback data khi không fetch được từ yfinance
+    (có thể do Streamlit Cloud block, hoặc yfinance down)
+    
+    Returns:
+        List of EquityItem with mock data
+    """
+    fallback_data = [
+        ("NVDA", 150.25, 5.8, "AI chip demand surge"),
+        ("AMD", 180.40, 4.2, "Data center growth"),
+        ("TSLA", 240.15, 3.9, "Delivery beat estimates"),
+        ("META", 520.30, 3.5, "Ad revenue rebound"),
+        ("GOOGL", 140.55, 2.8, "Cloud business strong"),
+        ("MSFT", 410.20, 2.3, "Azure growth continues"),
+        ("AAPL", 190.10, 1.9, "iPhone 15 sales solid"),
+        ("AMZN", 175.80, 1.5, "AWS dominance"),
+        ("NFLX", 680.50, 1.2, "Subscriber growth"),
+        ("CRM", 280.90, 0.9, "Enterprise demand"),
+    ]
+    
+    items = []
+    for ticker, price, pct, catalyst in fallback_data:
+        items.append(EquityItem(
+            ticker=ticker,
+            last=price,
+            pct_change=pct,
+            vol_ratio=1.2,
+            catalyst=catalyst,
+            source_url=f"https://finance.yahoo.com/quote/{ticker}",
+            idea="Momentum mạnh - theo dõi pullback" if pct > 3 else "Tăng nhẹ - xu hướng tích cực",
+            score=pct
+        ))
+    
+    return items
+
+
+@st.cache_data(ttl=1800, show_spinner=False)  # 30 min cache
+def build_top10_equities(universe: str = "NASDAQ Large-Cap", max_tickers: int = 30) -> EquityTop10:
     """
     Xây dựng Top 10 cổ phiếu tăng mạnh nhất trong phiên gần nhất
     
@@ -365,23 +402,34 @@ def build_top10_equities(universe: str = "NASDAQ Large-Cap") -> EquityTop10:
     
     Args:
         universe: Universe name
+        max_tickers: Giới hạn số ticker để tránh timeout (default 30, giảm từ 100)
         
     Returns:
         EquityTop10 object
     """
     logger.info("Building Top 10 strongest NASDAQ equities...")
     
-    # Lấy danh sách NASDAQ large-caps
-    tickers = get_nasdaq_large_caps()
+    # Lấy danh sách NASDAQ large-caps (giới hạn để tránh timeout)
+    all_tickers = get_nasdaq_large_caps()
+    tickers = all_tickers[:max_tickers]  # Chỉ lấy top 30 ticker đầu (most liquid)
+    
+    logger.info(f"Using {len(tickers)} tickers (from {len(all_tickers)} total) to avoid timeout")
     
     items = []
     
     # Fetch giá cho tất cả tickers (batch download nhanh hơn)
     logger.info(f"Fetching prices for {len(tickers)} NASDAQ tickers...")
     
+    processed_count = 0
+    error_count = 0
+    
     for ticker in tickers:
         try:
             df = fetch_ohlc(ticker, period="1mo", interval="1d")
+            processed_count += 1
+            
+            if processed_count % 10 == 0:
+                logger.info(f"Processed {processed_count}/{len(tickers)} tickers, found {len(items)} valid...")
             
             if df.empty or len(df) < 2:
                 continue
@@ -427,18 +475,30 @@ def build_top10_equities(universe: str = "NASDAQ Large-Cap") -> EquityTop10:
             items.append(item)
             
         except Exception as e:
-            logger.warning(f"Error processing {ticker}: {e}")
+            error_count += 1
+            if error_count <= 5:  # Chỉ log 5 lỗi đầu
+                logger.warning(f"Error processing {ticker}: {e}")
             continue
     
     # Sắp xếp theo % tăng giảm (descending)
     items.sort(key=lambda x: x.pct_change, reverse=True)
     
+    logger.info(f"Total processed: {processed_count}, errors: {error_count}, valid items: {len(items)}")
+    
     # Lấy top 10 tăng mạnh nhất
     top_items = items[:10]
     
+    # FALLBACK: Nếu không có data, dùng mock data
+    if not top_items:
+        logger.warning("No data fetched! Using fallback mock data...")
+        top_items = _get_fallback_top10()
+        method_note = "⚠️ FALLBACK: Dữ liệu mẫu (yfinance API unavailable)"
+    else:
+        method_note = "Top 10 cổ phiếu tăng mạnh nhất trong phiên gần nhất (theo %d/d)"
+    
     result = EquityTop10(
         universe=universe,
-        method="Top 10 cổ phiếu tăng mạnh nhất trong phiên gần nhất (theo %d/d)",
+        method=method_note,
         items=top_items,
         score_components={
             "pct_change_weight": 1.0,

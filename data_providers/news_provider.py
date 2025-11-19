@@ -17,14 +17,24 @@ class NewsProvider:
     def __init__(self):
         # Load API keys từ secrets
         try:
-            self.newsapi_key = st.secrets["news"]["newsapi_key"]
-            self.alphavantage_key = st.secrets["news"]["alphavantage_key"]
-            self.finnhub_key = st.secrets["news"]["finnhub_key"]
-        except:
-            logger.warning("Missing API keys in secrets.toml")
+            if hasattr(st, 'secrets') and "news" in st.secrets:
+                self.newsapi_key = st.secrets["news"].get("newsapi_key")
+                self.alphavantage_key = st.secrets["news"].get("alphavantage_key")
+                self.finnhub_key = st.secrets["news"].get("finnhub_key")
+                logger.info("Loaded API keys from Streamlit secrets")
+            else:
+                logger.warning("Streamlit secrets not available, trying environment variables")
+                import os
+                self.newsapi_key = os.getenv("NEWSAPI_KEY")
+                self.alphavantage_key = os.getenv("ALPHAVANTAGE_KEY")
+                self.finnhub_key = os.getenv("FINNHUB_KEY")
+        except Exception as e:
+            logger.error(f"Failed to load API keys: {e}")
             self.newsapi_key = None
             self.alphavantage_key = None
             self.finnhub_key = None
+        
+        logger.info(f"API Keys loaded: NewsAPI={'✓' if self.newsapi_key else '✗'}, AlphaVantage={'✓' if self.alphavantage_key else '✗'}, Finnhub={'✓' if self.finnhub_key else '✗'}")
     
     def get_news(self, hours_back: int = 48, max_items: int = 10) -> List[Dict]:
         """

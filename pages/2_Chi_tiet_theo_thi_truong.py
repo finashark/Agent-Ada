@@ -333,8 +333,10 @@ with tabs[0]:
             top10_text = "\n".join([f"{i+1}. {item.ticker} - {item.pct_change:+.2f}% - {item.idea}" 
                                     for i, item in enumerate(top10.items)])
             copy_section("Top 10 Equities", top10_text, show_preview=False, key_suffix="top10")
-    else:
-        st.warning("⚠️ Không có dữ liệu Top 10")
+    
+    # Check if using fallback data
+    if top10.last_updated and "fallback" in top10.method.lower():
+        st.info("ℹ️ Đang dùng dữ liệu mẫu do không thể kết nối yfinance API. Dữ liệu thực sẽ load trong vài phút.")
     
     # Score components
     st.markdown("### Score Components")
