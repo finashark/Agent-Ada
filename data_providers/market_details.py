@@ -434,14 +434,14 @@ def build_top10_equities(universe: str = "NASDAQ Large-Cap", max_tickers: int = 
             if df.empty or len(df) < 2:
                 continue
             
-            last = float(df["Close"].iloc[-1])
-            prev = float(df["Close"].iloc[-2])
+            last = df["Close"].iloc[-1].item()
+            prev = df["Close"].iloc[-2].item()
             pct_change = ((last / prev) - 1) * 100
             
             # Tính vol ratio
             if len(df) >= 20:
                 vol_20d_avg = df["Volume"].tail(20).mean()
-                last_vol = float(df["Volume"].iloc[-1])
+                last_vol = df["Volume"].iloc[-1].item()
                 vol_ratio = last_vol / vol_20d_avg if vol_20d_avg > 0 else 1.0
             else:
                 vol_ratio = 1.0

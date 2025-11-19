@@ -271,8 +271,8 @@ with st.spinner("Đang tổng hợp dữ liệu từ các trang..."):
                 """, unsafe_allow_html=True)
             
             # DXY
-            if "^DXY" in snapshot:
-                dxy = snapshot["^DXY"]
+            if "DXY" in snapshot:
+                dxy = snapshot["DXY"]
                 dxy_trend = "Mạnh (>105)" if dxy["last"] > 105 else "Yếu (<95)" if dxy["last"] < 95 else "Neutral"
                 st.markdown(f"""
                 <div class="summary-box">

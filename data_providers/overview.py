@@ -21,13 +21,18 @@ CORE_ASSETS = [
     "^GSPC",     # S&P 500
     "^NDX",      # Nasdaq 100
     "^DJI",      # Dow Jones
-    "^DXY",      # US Dollar Index
+    "DX-Y.NYB",  # US Dollar Index (DXY alternative - ^DXY often fails)
     "^VIX",      # Volatility Index
     "^TNX",      # 10-Year Treasury Yield
     "GC=F",      # Gold Futures
     "CL=F",      # Crude Oil WTI
     "BTC-USD",   # Bitcoin
 ]
+
+# Ticker display name mapping
+TICKER_DISPLAY_NAMES = {
+    "DX-Y.NYB": "DXY",  # Display as DXY instead of DX-Y.NYB
+}
 
 
 @st.cache_data(ttl=600, show_spinner=False)
@@ -145,7 +150,10 @@ def get_market_snapshot() -> Dict:
                 mtd_return = calculate_period_return(ticker_prices, 22)
                 zscore = calculate_zscore(ticker_prices, window=20)
                 
-                snapshot[ticker] = {
+                # Use display name if available
+                display_ticker = TICKER_DISPLAY_NAMES.get(ticker, ticker)
+                
+                snapshot[display_ticker] = {
                     "last": last_price,
                     "d1": d1_return,
                     "wtd": wtd_return,
@@ -247,8 +255,8 @@ def generate_highlights(snapshot: Dict) -> List[str]:
                 )
         
         # DXY
-        if "^DXY" in snapshot:
-            dxy = snapshot["^DXY"]
+        if "DXY" in snapshot:
+            dxy = snapshot["DXY"]
             highlights.append(
                 f"(Fact) DXY: {dxy['last']:.2f} ({dxy['d1']:+.2f}%)"
             )
@@ -309,8 +317,8 @@ def build_overview(tz_name: str = "Asia/Ho_Chi_Minh") -> MarketOverview:
     risk_sentiment = {}
     if "^VIX" in snapshot:
         risk_sentiment["vix"] = snapshot["^VIX"]["last"]
-    if "^DXY" in snapshot:
-        risk_sentiment["dxy"] = snapshot["^DXY"]["last"]
+    if "DXY" in snapshot:
+        risk_sentiment["dxy"] = snapshot["DXY"]["last"]
     if "^TNX" in snapshot:
         risk_sentiment["us10y"] = snapshot["^TNX"]["last"]
     

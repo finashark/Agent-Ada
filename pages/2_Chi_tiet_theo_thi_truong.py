@@ -359,7 +359,7 @@ with tabs[1]:
     
     with col1:
         with st.spinner("Loading DXY..."):
-            dxy_detail = build_detail("^DXY")
+            dxy_detail = build_detail("DX-Y.NYB")
             dxy_snap = dxy_detail.snapshot
             if dxy_snap:
                 st.metric("DXY", f"{dxy_snap.get('last', 0):.2f}", 
