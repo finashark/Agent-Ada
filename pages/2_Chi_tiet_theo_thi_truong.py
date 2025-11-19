@@ -236,6 +236,14 @@ MA50: {snapshot.get('ma50', 0):.2f}
                     # Build prompt for drivers analysis
                     drivers_list = "\n".join([f"- {d}" for d in detail.drivers])
                     
+                    # Safely get top 3 news (handle empty list)
+                    news_summary = ""
+                    if news_items and len(news_items) > 0:
+                        top_news = news_items[:3]
+                        news_summary = chr(10).join([f"- {item.get('title', 'N/A')}" for item in top_news])
+                    else:
+                        news_summary = "- Đang cập nhật tin tức..."
+                    
                     prompt = f"""Bạn là Ada, chuyên gia phân tích tài sản {asset}.
 
 CÁC YẾU TỐ CHI PHỐI GIÁ HIỆN TẠI:
@@ -244,7 +252,7 @@ CÁC YẾU TỐ CHI PHỐI GIÁ HIỆN TẠI:
 GIÁ HIỆN TẠI: ${detail.snapshot.get('last', 0):.2f} ({detail.snapshot.get('pct_d1', 0):+.2f}% trong ngày)
 
 TIN TỨC LIÊN QUAN:
-{chr(10).join([f"- {item.get('title', 'N/A')}" for item in news_items[:3]])}
+{news_summary}
 
 Viết 2 đoạn văn ngắn gọn (mỗi đoạn 3-4 câu) bằng tiếng Việt:
 

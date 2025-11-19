@@ -211,6 +211,14 @@ if overview.risk_sentiment:
         news_items = news_provider.get_news(hours_back=24, max_items=5)
         
         # Create focused prompt for risk sentiment
+        # Safely get top 3 news (handle empty list)
+        news_summary = ""
+        if news_items and len(news_items) > 0:
+            top_news = news_items[:3]
+            news_summary = chr(10).join([f"- {item.get('title', 'N/A')}" for item in top_news])
+        else:
+            news_summary = "- Đang cập nhật tin tức..."
+        
         risk_analysis_prompt = f"""Bạn là Ada, chuyên gia phân tích rủi ro thị trường.
 
 DỮ LIỆU HIỆN TẠI:
@@ -219,7 +227,7 @@ DỮ LIỆU HIỆN TẠI:
 - US 10Y Yield: {us10y:.2f}%
 
 TIN TỨC LIÊN QUAN:
-{chr(10).join([f"- {item.get('title', 'N/A')}" for item in news_items[:3]])}
+{news_summary}
 
 Viết 2 đoạn phân tích ngắn gọn (mỗi đoạn 3-4 câu):
 
