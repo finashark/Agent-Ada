@@ -199,6 +199,6 @@ Module sử dụng Streamlit caching:
 
 ---
 
-**Developed by Agent Ada © 2025**
+**Developed by Ken © 2025**
 
 Nâng cấp từ v1.0.0 → v1.1.0 với tính năng Crypto Derivatives tracking! 🚀

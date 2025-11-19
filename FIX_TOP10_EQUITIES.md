@@ -227,4 +227,4 @@ Hàm `build_top10_equities()` giờ đã:
 
 ---
 
-**Developed by Agent Ada © 2025**
+**Developed by Ken © 2025**

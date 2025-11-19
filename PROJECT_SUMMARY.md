@@ -308,6 +308,6 @@ Project completed successfully. All core requirements met. Ready for deployment 
 
 ---
 
-**Agent Ada © 2025 | Developed for HFM**
+**Developed by Ken © 2025 | Developed for HFM**
 
 *"Empowering brokers with data-driven insights"*

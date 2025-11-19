@@ -436,7 +436,7 @@ Múi giờ: {tz_name}
 
 ---
 Nguồn: yfinance, mock data
-Agent Ada © 2025
+Developed by Ken © 2025
 """
 
 copy_page_content(full_content, label="📄 Copy toàn trang")

@@ -277,4 +277,4 @@ Nếu test fail, vui lòng:
 
 **Happy Testing! 🎉**
 
-Agent Ada © 2025
+Developed by Ken © 2025

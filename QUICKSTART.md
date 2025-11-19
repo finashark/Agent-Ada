@@ -66,4 +66,4 @@ Mở trình duyệt tại: **http://localhost:8501**
 
 ---
 
-**Agent Ada © 2025**
+**Developed by Ken © 2025**

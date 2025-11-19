@@ -441,9 +441,9 @@ def build_top10_equities(universe: str = "NASDAQ Large-Cap") -> EquityTop10:
         method="Top 10 cổ phiếu tăng mạnh nhất trong phiên gần nhất (theo %d/d)",
         items=top_items,
         score_components={
-            "ranking_criteria": "% Change D/D",
-            "universe": "NASDAQ Large-Cap (~100 stocks)",
-            "note": "Score = % Change, không weighted"
+            "pct_change_weight": 1.0,
+            "vol_ratio_weight": 0.0,
+            "news_flag_weight": 0.0
         },
         last_updated=datetime.now(timezone.utc).isoformat()
     )

@@ -330,7 +330,7 @@ Phiên: {overview.session}
 {market_view_text}
 
 ---
-Nguồn: yfinance | Agent Ada © 2025
+Nguồn: yfinance | Developed by Ken © 2025
 """
 
 copy_page_content(full_page_content, label="📄 Copy toàn trang")

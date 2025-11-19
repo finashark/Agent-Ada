@@ -224,7 +224,7 @@ st.markdown("---")
 # Footer
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 20px 0;">
-    <p>© 2025 Agent Ada | Được phát triển cho sàn HFM</p>
+    <p>© 2025 Developed by Ken | Được phát triển cho sàn HFM</p>
     <p style="font-size: 0.9rem;">
         <strong>Lưu ý:</strong> Thông tin được cung cấp chỉ mang tính chất tham khảo. 
         Không phải lời khuyên đầu tư. Vui lòng tự nghiên cứu và đánh giá rủi ro.
