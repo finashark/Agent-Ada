@@ -13,10 +13,7 @@ from schemas import MarketOverview, CalendarItem
 from components.session_badge import session_status, session_ttl
 from components.session_cache import (
     get_market_data_cache_key,
-    get_cached_data,
-    set_cached_data,
-    get_cache_timestamp,
-    should_refresh_cache
+    get_cached_data
 )
 
 # Setup logging
@@ -44,8 +41,8 @@ TICKER_DISPLAY_NAMES = {
 
 def fetch_prices(tickers: List[str], period: str = "1mo", interval: str = "1d") -> pd.DataFrame:
     """
-    Fetch giá từ yfinance với session-based cache
-    Chỉ fetch mới khi sang phiên giao dịch mới (4 lần/ngày tối đa)
+    Fetch giá từ yfinance với session-based SHARED cache
+    Cache được share giữa tất cả users - chỉ user đầu tiên fetch
     
     Args:
         tickers: Danh sách mã tài sản
@@ -55,21 +52,9 @@ def fetch_prices(tickers: List[str], period: str = "1mo", interval: str = "1d") 
     Returns:
         DataFrame với giá Close
     """
-    # Tạo cache key cho phiên hiện tại
-    cache_key = get_market_data_cache_key()
-    cache_timestamp = get_cache_timestamp(cache_key)
-    
-    # Kiểm tra xem có cần refresh không
-    if not should_refresh_cache(cache_timestamp):
-        # Lấy từ cache
-        cached_data = get_cached_data(cache_key)
-        if cached_data is not None:
-            logger.info(f"📦 Using cached market data from {cache_timestamp}")
-            return cached_data
-    
-    # Fetch data mới
-    logger.info(f"🔄 Fetching fresh market data (new session)")
-    try:
+    # Định nghĩa fetch function
+    def _fetch():
+        logger.info(f"🔄 Fetching fresh market data (new session or first user)")
         logger.info(f"Fetching prices for {len(tickers)} tickers: period={period}, interval={interval}")
         
         data = yf.download(
@@ -85,13 +70,16 @@ def fetch_prices(tickers: List[str], period: str = "1mo", interval: str = "1d") 
         if isinstance(data.columns, pd.MultiIndex):
             data = data["Close"]
         
-        logger.info(f"Successfully fetched {len(data)} rows of data")
-        
-        # Lưu vào cache
-        set_cached_data(cache_key, data)
-        logger.info(f"💾 Cached market data for session")
-        
+        logger.info(f"Successfully fetched {len(data)} rows - will be cached for entire session")
         return data
+    
+    # Dùng shared cache - tự động handle session-based invalidation
+    try:
+        return get_cached_data(_fetch)
+    except Exception as e:
+        logger.error(f"Error fetching prices: {e}")
+        st.warning(f"⚠️ Không thể tải dữ liệu giá: {e}")
+        return pd.DataFrame()
         
     except Exception as e:
         logger.error(f"Error fetching prices: {e}")

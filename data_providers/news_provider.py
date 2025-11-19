@@ -7,11 +7,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
 import logging
 from components.session_cache import (
-    get_news_cache_key,
-    get_cached_data,
-    set_cached_data,
-    get_cache_timestamp,
-    should_refresh_cache
+    get_cached_data
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -45,8 +41,8 @@ class NewsProvider:
     
     def get_news(self, hours_back: int = 48, max_items: int = 10) -> List[Dict]:
         """
-        Lấy tin tức từ các provider với session-based cache
-        Chỉ fetch mới khi sang phiên giao dịch mới (4 lần/ngày tối đa)
+        Lấy tin tức từ các provider với session-based SHARED cache
+        Cache được share giữa tất cả users - chỉ user đầu tiên fetch
         
         Args:
             hours_back: Số giờ lấy tin ngược lại
@@ -55,83 +51,68 @@ class NewsProvider:
         Returns:
             List tin tức đã chuẩn hóa
         """
-        # Kiểm tra cache
-        cache_key = get_news_cache_key()
-        cache_timestamp = get_cache_timestamp(cache_key)
+        # Định nghĩa fetch function
+        def _fetch():
+            logger.info(f"🔄 Fetching fresh news (new session or first user)")
+            errors = []
+            
+            # Try NewsAPI first
+            if self.newsapi_key:
+                try:
+                    logger.info("Attempting to fetch from NewsAPI...")
+                    news = self._fetch_newsapi(hours_back, max_items)
+                    if news and len(news) > 0:
+                        logger.info(f"Fetched {len(news)} items from NewsAPI - will be cached for entire session")
+                        return news
+                    else:
+                        logger.warning("NewsAPI returned empty results")
+                except Exception as e:
+                    error_msg = f"NewsAPI failed: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            else:
+                logger.warning("NewsAPI key not available")
+            
+            # Fallback to Alpha Vantage
+            if self.alphavantage_key:
+                try:
+                    logger.info("Attempting to fetch from Alpha Vantage...")
+                    news = self._fetch_alphavantage(max_items)
+                    if news and len(news) > 0:
+                        logger.info(f"Fetched {len(news)} items from Alpha Vantage - will be cached for entire session")
+                        return news
+                    else:
+                        logger.warning("Alpha Vantage returned empty results")
+                except Exception as e:
+                    error_msg = f"Alpha Vantage failed: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            else:
+                logger.warning("Alpha Vantage key not available")
+            
+            # Fallback to Finnhub
+            if self.finnhub_key:
+                try:
+                    logger.info("Attempting to fetch from Finnhub...")
+                    news = self._fetch_finnhub(hours_back, max_items)
+                    if news and len(news) > 0:
+                        logger.info(f"Fetched {len(news)} items from Finnhub - will be cached for entire session")
+                        return news
+                    else:
+                        logger.warning("Finnhub returned empty results")
+                except Exception as e:
+                    error_msg = f"Finnhub failed: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            else:
+                logger.warning("Finnhub key not available")
+            
+            # All failed
+            logger.error(f"All news providers failed. Errors: {errors}")
+            return []
         
-        if not should_refresh_cache(cache_timestamp):
-            cached_news = get_cached_data(cache_key)
-            if cached_news is not None:
-                logger.info(f"📦 Using cached news from {cache_timestamp}")
-                return cached_news
-        
-        # Fetch news mới
-        logger.info(f"🔄 Fetching fresh news (new session)")
-        errors = []
-        
-        # Try NewsAPI first
-        if self.newsapi_key:
-            try:
-                logger.info("Attempting to fetch from NewsAPI...")
-                news = self._fetch_newsapi(hours_back, max_items)
-                if news and len(news) > 0:
-                    logger.info(f"Fetched {len(news)} items from NewsAPI")
-                    # Cache kết quả
-                    set_cached_data(cache_key, news)
-                    logger.info(f"💾 Cached news for session")
-                    return news
-                else:
-                    logger.warning("NewsAPI returned empty results")
-            except Exception as e:
-                error_msg = f"NewsAPI failed: {str(e)}"
-                logger.error(error_msg)
-                errors.append(error_msg)
-        else:
-            logger.warning("NewsAPI key not available")
-        
-        # Fallback to Alpha Vantage
-        if self.alphavantage_key:
-            try:
-                logger.info("Attempting to fetch from Alpha Vantage...")
-                news = self._fetch_alphavantage(hours_back, max_items)
-                if news and len(news) > 0:
-                    logger.info(f"Fetched {len(news)} items from Alpha Vantage")
-                    # Cache kết quả
-                    set_cached_data(cache_key, news)
-                    logger.info(f"💾 Cached news for session")
-                    return news
-                else:
-                    logger.warning("Alpha Vantage returned empty results")
-            except Exception as e:
-                error_msg = f"Alpha Vantage failed: {str(e)}"
-                logger.error(error_msg)
-                errors.append(error_msg)
-        else:
-            logger.warning("Alpha Vantage key not available")
-        
-        # Fallback to Finnhub
-        if self.finnhub_key:
-            try:
-                logger.info("Attempting to fetch from Finnhub...")
-                news = self._fetch_finnhub(hours_back, max_items)
-                if news and len(news) > 0:
-                    logger.info(f"Fetched {len(news)} items from Finnhub")
-                    # Cache kết quả
-                    set_cached_data(cache_key, news)
-                    logger.info(f"💾 Cached news for session")
-                    return news
-                else:
-                    logger.warning("Finnhub returned empty results")
-            except Exception as e:
-                error_msg = f"Finnhub failed: {str(e)}"
-                logger.error(error_msg)
-                errors.append(error_msg)
-        else:
-            logger.warning("Finnhub key not available")
-        
-        # All failed
-        logger.error(f"All news providers failed. Errors: {errors}")
-        return []
+        # Dùng shared cache - tự động handle session-based invalidation
+        return get_cached_data(_fetch)
     
     def _fetch_newsapi(self, hours_back: int, max_items: int) -> List[Dict]:
         """Fetch từ NewsAPI.org"""
