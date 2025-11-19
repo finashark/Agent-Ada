@@ -84,18 +84,18 @@ def build_snapshot(df: pd.DataFrame) -> Dict:
         if df.empty or len(df) < 2:
             return {}
         
-        last = float(df["Close"].iloc[-1])
-        prev_close = float(df["Close"].iloc[-2])
+        last = df["Close"].iloc[-1].item()
+        prev_close = df["Close"].iloc[-2].item()
         pct_d1 = ((last / prev_close) - 1) * 100
         
-        day_low = float(df["Low"].iloc[-1])
-        day_high = float(df["High"].iloc[-1])
+        day_low = df["Low"].iloc[-1].item()
+        day_high = df["High"].iloc[-1].item()
         
         atr = calculate_atr(df["High"], df["Low"], df["Close"], period=14)
-        atr_val = float(atr.iloc[-1]) if not atr.empty else np.nan
+        atr_val = atr.iloc[-1].item() if not atr.empty else np.nan
         
-        ma20 = float(df["Close"].rolling(20).mean().iloc[-1]) if len(df) >= 20 else np.nan
-        ma50 = float(df["Close"].rolling(50).mean().iloc[-1]) if len(df) >= 50 else np.nan
+        ma20 = df["Close"].rolling(20).mean().iloc[-1].item() if len(df) >= 20 else np.nan
+        ma50 = df["Close"].rolling(50).mean().iloc[-1].item() if len(df) >= 50 else np.nan
         
         snapshot = {
             "last": last,
@@ -431,7 +431,7 @@ def build_top10_equities(universe: str = "NASDAQ Large-Cap", max_tickers: int = 
             if processed_count % 10 == 0:
                 logger.info(f"Processed {processed_count}/{len(tickers)} tickers, found {len(items)} valid...")
             
-            if df.empty or len(df) < 2:
+            if df is None or (isinstance(df, pd.DataFrame) and df.empty) or len(df) < 2:
                 continue
             
             last = df["Close"].iloc[-1].item()
@@ -442,6 +442,9 @@ def build_top10_equities(universe: str = "NASDAQ Large-Cap", max_tickers: int = 
             if len(df) >= 20:
                 vol_20d_avg = df["Volume"].tail(20).mean()
                 last_vol = df["Volume"].iloc[-1].item()
+                # Ensure vol_20d_avg is scalar
+                if isinstance(vol_20d_avg, pd.Series):
+                    vol_20d_avg = vol_20d_avg.item() if len(vol_20d_avg) == 1 else vol_20d_avg.iloc[0]
                 vol_ratio = last_vol / vol_20d_avg if vol_20d_avg > 0 else 1.0
             else:
                 vol_ratio = 1.0

@@ -338,6 +338,7 @@ def build_overview(tz_name: str = "Asia/Ho_Chi_Minh") -> MarketOverview:
         highlights=highlights,
         macro_briefs=macro_briefs,
         risk_sentiment=risk_sentiment,
+        market_snapshot=snapshot,  # Add snapshot for AI analysis
         economic_calendar=calendar,
         session=active_session,
         last_updated=now_utc.isoformat(),

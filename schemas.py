@@ -33,6 +33,7 @@ class MarketOverview(BaseModel):
     highlights: List[str] = Field(default_factory=list, description="Điểm nhấn qua đêm")
     macro_briefs: List[str] = Field(default_factory=list, description="Tóm tắt vĩ mô")
     risk_sentiment: Dict[str, float] = Field(default_factory=dict)
+    market_snapshot: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Snapshot thị trường cho AI analysis")
     economic_calendar: List[CalendarItem] = Field(default_factory=list)
     session: str = Field(description="Phiên đang theo dõi")
     last_updated: str
