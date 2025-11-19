@@ -7,6 +7,7 @@ import pytz
 import pandas as pd
 from data_providers.overview import get_market_snapshot, build_overview
 from data_providers.market_details import build_top10_equities
+from data_providers.news_provider import get_market_news
 
 # Cấu hình trang
 st.set_page_config(
@@ -357,83 +358,98 @@ st.markdown("---")
 # ============== TIN TỨC QUAN TRỌNG ==============
 st.markdown("## 📰 Tin tức & Sự kiện quan trọng")
 
-st.info("📌 **Lưu ý:** Đây là dữ liệu mẫu. Tích hợp API tin tức thực tế cần API key từ NewsAPI, Alpha Vantage, hoặc Bloomberg.")
-
-# Mock news data (3 phiên gần nhất)
-now = datetime.now(timezone.utc)
-news_items = [
-    {
-        "time": (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M"),
-        "asset": "S&P 500",
-        "title": "Fed giữ nguyên lãi suất 5.25-5.50%, tín hiệu dovish",
-        "impact": "High",
-        "sentiment": "Positive",
-        "source": "Reuters"
-    },
-    {
-        "time": (now - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"),
-        "asset": "NVDA",
-        "title": "NVIDIA báo cáo thu nhập Q4 vượt kỳ vọng, doanh thu AI tăng 78%",
-        "impact": "High",
-        "sentiment": "Positive",
-        "source": "Bloomberg"
-    },
-    {
-        "time": (now - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M"),
-        "asset": "BTCUSDT",
-        "title": "Bitcoin ETF có dòng vào ròng $500M trong tuần qua",
-        "impact": "Medium",
-        "sentiment": "Positive",
-        "source": "CoinDesk"
-    },
-    {
-        "time": (now - timedelta(hours=12)).strftime("%Y-%m-%d %H:%M"),
-        "asset": "Gold",
-        "title": "Vàng giảm xuống $2,010 khi USD mạnh lên, nhà đầu tư chốt lời",
-        "impact": "Medium",
-        "sentiment": "Negative",
-        "source": "Kitco"
-    },
-    {
-        "time": (now - timedelta(hours=16)).strftime("%Y-%m-%d %H:%M"),
-        "asset": "Oil",
-        "title": "OPEC+ duy trì cắt giảm sản lượng, dầu WTI tăng 2.3%",
-        "impact": "Medium",
-        "sentiment": "Positive",
-        "source": "CNBC"
-    },
-    {
-        "time": (now - timedelta(hours=20)).strftime("%Y-%m-%d %H:%M"),
-        "asset": "EUR/USD",
-        "title": "ECB cảnh báo về rủi ro lạm phát dai dẳng tại Eurozone",
-        "impact": "Medium",
-        "sentiment": "Negative",
-        "source": "Financial Times"
-    }
-]
-
-# Hiển thị tin tức
-for news in news_items:
-    impact_color = "#ff5252" if news["impact"] == "High" else "#ff9800" if news["impact"] == "Medium" else "#4caf50"
-    sentiment_emoji = "🟢" if news["sentiment"] == "Positive" else "🔴" if news["sentiment"] == "Negative" else "🟡"
+with st.spinner("Đang tải tin tức từ NewsAPI, Alpha Vantage, Finnhub..."):
+    try:
+        # Lấy tin tức thực từ API
+        news_items = get_market_news(hours_back=48, max_items=10)
+        
+        if news_items:
+            st.success(f"✅ Đã tải {len(news_items)} tin tức mới nhất từ các nguồn uy tín")
+            
+            # Hiển thị tin tức
+            for news in news_items:
+                impact_color = "#ff5252" if news["impact"] == "High" else "#ff9800" if news["impact"] == "Medium" else "#4caf50"
+                sentiment_emoji = "🟢" if news["sentiment"] == "Positive" else "🔴" if news["sentiment"] == "Negative" else "🟡"
+                
+                # Parse time
+                try:
+                    if "T" in news["time"]:
+                        news_time = datetime.fromisoformat(news["time"].replace("Z", "+00:00"))
+                    else:
+                        news_time = datetime.strptime(news["time"], "%Y%m%dT%H%M%S")
+                    time_str = news_time.strftime("%Y-%m-%d %H:%M")
+                except:
+                    time_str = news["time"]
+                
+                # Tạo link nếu có URL
+                title_display = f"[{news['title']}]({news['url']})" if news.get("url") else news['title']
+                
+                st.markdown(f"""
+                <div class="news-box">
+                    <strong>{sentiment_emoji} {news['asset']}</strong> | 
+                    <span style="color: {impact_color}; font-weight: bold;">{news['impact']} Impact</span> | 
+                    <small>{time_str}</small><br>
+                    <strong>{news['title']}</strong><br>
+                    <small>📰 Nguồn: {news['source']}</small>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.caption("🔄 Tin tức được cập nhật mỗi 30 phút | Cache TTL: 1800s")
+            
+        else:
+            st.warning("⚠️ Không thể tải tin tức từ các API. Hiển thị dữ liệu mẫu...")
+            
+            # Fallback to mock data
+            now = datetime.now(timezone.utc)
+            mock_news = [
+                {
+                    "time": (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M"),
+                    "asset": "S&P 500",
+                    "title": "Fed giữ nguyên lãi suất 5.25-5.50%, tín hiệu dovish",
+                    "impact": "High",
+                    "sentiment": "Positive",
+                    "source": "Reuters"
+                },
+                {
+                    "time": (now - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"),
+                    "asset": "NVDA",
+                    "title": "NVIDIA báo cáo thu nhập Q4 vượt kỳ vọng, doanh thu AI tăng 78%",
+                    "impact": "High",
+                    "sentiment": "Positive",
+                    "source": "Bloomberg"
+                },
+                {
+                    "time": (now - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M"),
+                    "asset": "BTC",
+                    "title": "Bitcoin ETF có dòng vào ròng $500M trong tuần qua",
+                    "impact": "Medium",
+                    "sentiment": "Positive",
+                    "source": "CoinDesk"
+                }
+            ]
+            
+            for news in mock_news:
+                impact_color = "#ff5252" if news["impact"] == "High" else "#ff9800"
+                sentiment_emoji = "🟢" if news["sentiment"] == "Positive" else "🔴"
+                
+                st.markdown(f"""
+                <div class="news-box">
+                    <strong>{sentiment_emoji} {news['asset']}</strong> | 
+                    <span style="color: {impact_color}; font-weight: bold;">{news['impact']} Impact</span> | 
+                    <small>{news['time']}</small><br>
+                    <strong>{news['title']}</strong><br>
+                    <small>📰 Nguồn: {news['source']} (Mock data)</small>
+                </div>
+                """, unsafe_allow_html=True)
     
-    st.markdown(f"""
-    <div class="news-box">
-        <strong>{sentiment_emoji} {news['asset']}</strong> | 
-        <span style="color: {impact_color}; font-weight: bold;">{news['impact']} Impact</span> | 
-        <small>{news['time']}</small><br>
-        <strong>{news['title']}</strong><br>
-        <small>📰 Nguồn: {news['source']}</small>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.caption("""
-💡 **Cách tích hợp tin tức thực tế:**
-- **NewsAPI** (newsapi.org): Free tier 100 requests/day, hỗ trợ filter theo keyword
-- **Alpha Vantage** (alphavantage.co): Free news & sentiment API
-- **Finnhub** (finnhub.io): Real-time news cho stocks, forex, crypto
-- **RSS Feeds**: Reuters, Bloomberg, CNBC (miễn phí nhưng cần parse)
-""")
+    except Exception as e:
+        st.error(f"❌ Lỗi khi tải tin tức: {e}")
+        st.info("""
+        💡 **Khắc phục:**
+        - Kiểm tra API keys trong `.streamlit/secrets.toml`
+        - Kiểm tra kết nối internet
+        - Xem logs để biết provider nào bị lỗi
+        """)
 
 st.markdown("---")
 
