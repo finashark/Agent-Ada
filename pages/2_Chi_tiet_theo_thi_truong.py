@@ -236,12 +236,15 @@ MA50: {snapshot.get('ma50', 0):.2f}
                     # Build prompt for drivers analysis
                     drivers_list = "\n".join([f"- {d}" for d in detail.drivers])
                     
-                    # Safely get top 3 news (handle empty list)
+                    # Safely get top 3 news (handle empty list, None, or any falsy value)
                     news_summary = ""
-                    if news_items and len(news_items) > 0:
-                        top_news = news_items[:3]
-                        news_summary = chr(10).join([f"- {item.get('title', 'N/A')}" for item in top_news])
-                    else:
+                    try:
+                        if news_items is not None and isinstance(news_items, list) and len(news_items) > 0:
+                            top_news = news_items[:3]
+                            news_summary = chr(10).join([f"- {item.get('title', 'N/A')}" for item in top_news if item])
+                        else:
+                            news_summary = "- Đang cập nhật tin tức..."
+                    except:
                         news_summary = "- Đang cập nhật tin tức..."
                     
                     prompt = f"""Bạn là Ada, chuyên gia phân tích tài sản {asset}.
