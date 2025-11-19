@@ -6,9 +6,13 @@ import streamlit as st
 from datetime import datetime, timezone
 import pandas as pd
 import sys
+import logging
+
 sys.path.insert(0, '..')
 
 from components.session_badge import render_session_bar, get_active_session_ttl
+
+logger = logging.getLogger(__name__)
 from components.timestamp import render_timestamp
 from components.copy import copy_section, copy_page_content
 from components.exporters import show_export_options
@@ -197,29 +201,57 @@ if overview.risk_sentiment:
             help="Lợi suất trái phiếu Mỹ 10 năm"
         )
     
-    # Analysis
+    # Analysis - AI-Powered
     st.markdown("### Nhận định của Ada")
     
-    # Xây dựng câu topic và support
-    vix_analysis = ""
-    if vix > 20:
-        vix_analysis = f"Chỉ số VIX hiện đang ở mức {vix:.2f}, vượt ngưỡng 20 điểm. Đây là tín hiệu cho thấy lo ngại đang gia tăng trên thị trường chứng khoán Mỹ. Khi VIX tăng cao, các nhà đầu tư thường mua quyền chọn bảo vệ (put options) nhiều hơn, phản ánh kỳ vọng về biến động mạnh sắp tới. Điều này thường đi kèm với dòng tiền tháo chạy khỏi tài sản rủi ro (risk-off), chuyển sang các kênh an toàn như trái phiếu chính phủ Mỹ hoặc đô la."
-    elif vix < 15:
-        vix_analysis = f"Chỉ số VIX đang duy trì ở mức thấp {vix:.2f}, cho thấy thị trường đang trong trạng thái ổn định. Mức VIX dưới 15 thường phản ánh tâm lý lạc quan của nhà đầu tư (risk-on), khi họ sẵn sàng nắm giữ cổ phiếu và tài sản rủi ro cao hơn. Trong môi trường này, các tài sản như cổ phiếu công nghệ, tiền mã hóa và các cặp tiền tệ có lợi suất cao (high-yielding currencies) thường được ưa chuộng."
-    else:
-        vix_analysis = f"Chỉ số VIX hiện ở mức {vix:.2f}, nằm trong vùng trung lập 15-20 điểm. Đây là mức biến động bình thường, cho thấy thị trường đang trong giai đoạn cân bằng giữa lạc quan và thận trọng. Nhà đầu tư nên theo dõi thêm các chỉ báo khác để xác định xu hướng rõ ràng hơn."
-    
-    dxy_analysis = ""
-    if dxy > 105:
-        dxy_analysis = f"Chỉ số USD Index (DXY) đang giao dịch ở {dxy:.2f}, trên ngưỡng 105. Điều này cho thấy đồng đô la Mỹ đang trong xu hướng mạnh so với rổ các đồng tiền chính (EUR, JPY, GBP, CAD, SEK, CHF). Khi USD mạnh lên, các tài sản được định giá bằng USD như vàng, dầu và hầu hết hàng hóa (commodities) thường chịu áp lực giảm giá. Bên cạnh đó, cổ phiếu của các công ty xuất khẩu Mỹ cũng có thể gặp bất lợi do sản phẩm trở nên đắt hơn trên thị trường quốc tế."
-    elif dxy < 95:
-        dxy_analysis = f"Chỉ số USD Index (DXY) đang ở mức {dxy:.2f}, dưới ngưỡng 95. Đây là tín hiệu USD đang suy yếu, tạo điều kiện thuận lợi cho vàng và các hàng hóa tăng giá. Khi USD yếu, các nhà đầu tư nước ngoài dễ dàng mua tài sản Mỹ với chi phí thấp hơn, đồng thời các thị trường mới nổi (emerging markets) thường được hưởng lợi nhờ giảm gánh nặng nợ USD."
-    else:
-        dxy_analysis = f"Chỉ số USD Index (DXY) đang dao động ở {dxy:.2f}, trong vùng cân bằng 95-105. Đây là mức ổn định, cho thấy USD không có xu hướng rõ rệt. Trong tình huống này, biến động giá của vàng, dầu và các tài sản khác sẽ phụ thuộc nhiều hơn vào yếu tố cung-cầu thực tế và các sự kiện địa chính trị."
-    
-    st.markdown(vix_analysis)
-    st.markdown("")
-    st.markdown(dxy_analysis)
+    # Get AI analysis for risk sentiment
+    with st.spinner("Ada đang phân tích VIX và DXY..."):
+        ada_analyst = get_ada_analyst()
+        news_provider = NewsProvider()
+        news_items = news_provider.get_news(hours_back=24, max_items=5)
+        
+        # Create focused prompt for risk sentiment
+        risk_analysis_prompt = f"""Bạn là Ada, chuyên gia phân tích rủi ro thị trường.
+
+DỮ LIỆU HIỆN TẠI:
+- VIX: {vix:.2f}
+- DXY: {dxy:.2f}
+- US 10Y Yield: {us10y:.2f}%
+
+TIN TỨC LIÊN QUAN:
+{chr(10).join([f"- {item.get('title', 'N/A')}" for item in news_items[:3]])}
+
+Viết 2 đoạn phân tích ngắn gọn (mỗi đoạn 3-4 câu):
+
+**Đoạn 1: Phân tích VIX {vix:.2f}**
+- Ý nghĩa của mức VIX hiện tại (so với ngưỡng 15-20)
+- Tâm lý nhà đầu tư: Risk-on hay Risk-off?
+- Tác động đến chiến lược giao dịch
+
+**Đoạn 2: Phân tích DXY {dxy:.2f}**
+- Xu hướng USD (so với ngưỡng 95-105)
+- Tác động đến vàng, dầu, hàng hóa
+- Ảnh hưởng đến emerging markets
+
+Viết bằng tiếng Việt chuyên nghiệp, súc tích, có data cụ thể."""
+
+        if ada_analyst.model:
+            try:
+                response = ada_analyst.model.generate_content(risk_analysis_prompt)
+                st.markdown(response.text)
+                risk_ai_text = response.text
+            except Exception as e:
+                logger.error(f"Gemini error: {e}")
+                # Fallback
+                st.markdown(f"VIX {vix:.2f} cho thấy thị trường {'biến động cao, tâm lý risk-off' if vix > 20 else 'ổn định, tâm lý risk-on' if vix < 15 else 'cân bằng'}.")
+                st.markdown(f"DXY {dxy:.2f} đang {'mạnh, tạo áp lực lên vàng/dầu' if dxy > 105 else 'yếu, hỗ trợ hàng hóa' if dxy < 95 else 'ổn định trong vùng cân bằng'}.")
+                risk_ai_text = f"VIX: {vix:.2f}, DXY: {dxy:.2f}"
+        else:
+            # Fallback when Gemini not available
+            st.info("⚠️ Gemini AI chưa được cấu hình. Hiển thị phân tích cơ bản.")
+            st.markdown(f"VIX {vix:.2f} cho thấy thị trường {'biến động cao, tâm lý risk-off' if vix > 20 else 'ổn định, tâm lý risk-on' if vix < 15 else 'cân bằng'}.")
+            st.markdown(f"DXY {dxy:.2f} đang {'mạnh, tạo áp lực lên vàng/dầu' if dxy > 105 else 'yếu, hỗ trợ hàng hóa' if dxy < 95 else 'ổn định trong vùng cân bằng'}.")
+            risk_ai_text = f"VIX: {vix:.2f}, DXY: {dxy:.2f}"
     
     # Copy
     risk_text = f"VIX: {vix:.2f}\nDXY: {dxy:.2f}\nUS10Y: {us10y:.2f}%"
@@ -237,10 +269,10 @@ st.markdown("---")
 # ============== SECTION 5: QUAN ĐIỂM ĐẦU NGÀY ==============
 st.markdown("## 🎯 Quan điểm đầu ngày")
 
-st.markdown("### Nhận định của Ada (AI-Generated)")
+st.markdown("### Nhận định của Ada")
 
 # Get AI-powered analysis
-with st.spinner("🤖 Ada đang phân tích thị trường với AI Gemini..."):
+with st.spinner("Ada đang tổng hợp thông tin và phân tích thị trường..."):
     # Fetch news
     news_provider = NewsProvider()
     news_items = news_provider.get_news(hours_back=24, max_items=10)

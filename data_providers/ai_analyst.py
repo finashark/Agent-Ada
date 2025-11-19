@@ -22,22 +22,30 @@ class AdaAIAnalyst:
         """Initialize Gemini AI with API key from secrets"""
         try:
             # Load API key from secrets or environment
-            if hasattr(st, 'secrets') and 'gemini' in st.secrets:
+            api_key = None
+            
+            # Try loading from Streamlit secrets first
+            try:
                 api_key = st.secrets['gemini']['api_key']
-            else:
+                logger.info("Loaded Gemini API key from Streamlit secrets")
+            except (KeyError, FileNotFoundError, AttributeError) as e:
+                logger.info(f"Could not load from st.secrets: {e}")
+                # Fallback to environment variable
                 import os
                 api_key = os.getenv('GEMINI_API_KEY')
+                if api_key:
+                    logger.info("Loaded Gemini API key from environment variable")
             
             if api_key:
                 genai.configure(api_key=api_key)
-                self.model = genai.GenerativeModel('gemini-pro')
-                logger.info("Gemini AI initialized successfully")
+                self.model = genai.GenerativeModel('gemini-2.5-flash')
+                logger.info("✅ Gemini AI initialized successfully")
             else:
                 self.model = None
-                logger.warning("Gemini API key not found")
+                logger.warning("⚠️ Gemini API key not found - will use fallback analysis")
                 
         except Exception as e:
-            logger.error(f"Error initializing Gemini: {e}")
+            logger.error(f"❌ Error initializing Gemini: {e}")
             self.model = None
     
     
@@ -238,9 +246,7 @@ DXY ở {dxy:.2f} đang {'tạo áp lực lên' if dxy > 105 else 'hỗ trợ'} 
 
 **Khuyến nghị:**
 
-Ưu tiên {'tài sản an toàn' if vix > 20 else 'tài sản rủi ro cao'}. Theo dõi sát tin tức Fed và earnings.
-
-*Lưu ý: Phân tích này được tạo tự động do Gemini AI không khả dụng. Vui lòng cấu hình API key để có phân tích chi tiết hơn.*"""
+Ưu tiên {'tài sản an toàn' if vix > 20 else 'tài sản rủi ro cao'}. Theo dõi sát tin tức Fed và earnings."""
         
         return analysis
     
@@ -262,9 +268,7 @@ Giá hiện tại: ${snapshot.get('last', 0):.2f} ({'tăng' if pct > 0 else 'gi�
 
 **Khuyến nghị:**
 
-{'Chờ pullback về MA20 để mua' if pct > 2 else 'Theo dõi breakout resistance để vào lệnh'}.
-
-*Lưu ý: Phân tích này được tạo tự động do Gemini AI không khả dụng. Vui lòng cấu hình API key để có phân tích chi tiết hơn.*"""
+{'Chờ pullback về MA20 để mua' if pct > 2 else 'Theo dõi breakout resistance để vào lệnh'}."""
         
         return analysis
 

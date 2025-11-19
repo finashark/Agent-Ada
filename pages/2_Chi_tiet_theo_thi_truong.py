@@ -15,6 +15,8 @@ from data_providers.market_details import (
     build_detail,
     FX_MAJORS, CRYPTO_MAJORS, OIL_TICKERS, GLOBAL_INDICES
 )
+from data_providers.ai_analyst import get_ada_analyst
+from data_providers.news_provider import NewsProvider
 
 # Cấu hình trang
 st.set_page_config(
@@ -220,8 +222,48 @@ MA50: {snapshot.get('ma50', 0):.2f}
     
     if detail.drivers:
         st.markdown("### Nhận định của Ada")
-        drivers_narrative = format_drivers_narrative(detail.drivers, asset)
-        st.markdown(drivers_narrative)
+        
+        # AI-powered analysis
+        with st.spinner("Ada đang phân tích các yếu tố chi phối..."):
+            ada_analyst = get_ada_analyst()
+            news_provider = NewsProvider()
+            
+            # Get relevant news (last 12 hours, more focused)
+            news_items = news_provider.get_news(hours_back=12, max_items=5)
+            
+            if ada_analyst.model:
+                try:
+                    # Build prompt for drivers analysis
+                    drivers_list = "\n".join([f"- {d}" for d in detail.drivers])
+                    
+                    prompt = f"""Bạn là Ada, chuyên gia phân tích tài sản {asset}.
+
+CÁC YẾU TỐ CHI PHỐI GIÁ HIỆN TẠI:
+{drivers_list}
+
+GIÁ HIỆN TẠI: ${detail.snapshot.get('last', 0):.2f} ({detail.snapshot.get('pct_d1', 0):+.2f}% trong ngày)
+
+TIN TỨC LIÊN QUAN:
+{chr(10).join([f"- {item.get('title', 'N/A')}" for item in news_items[:3]])}
+
+Viết 2 đoạn văn ngắn gọn (mỗi đoạn 3-4 câu) bằng tiếng Việt:
+
+**Đoạn 1**: Phân tích các yếu tố tích cực (+) và tiêu cực (-) đang tác động lên giá {asset}. Giải thích cơ chế tác động (ví dụ: DXY yếu → vàng tăng vì trở nên rẻ hơn cho buyer ngoài USD).
+
+**Đoạn 2**: Đánh giá yếu tố nào đang chiếm ưu thế (bullish hay bearish) và dự báo xu hướng ngắn hạn dựa trên balance của các drivers này.
+
+Viết chuyên nghiệp, súc tích, có số liệu cụ thể."""
+                    
+                    response = ada_analyst.model.generate_content(prompt)
+                    st.markdown(response.text)
+                except Exception as e:
+                    # Fallback to static
+                    drivers_narrative = format_drivers_narrative(detail.drivers, asset)
+                    st.markdown(drivers_narrative)
+            else:
+                # Fallback when AI unavailable
+                drivers_narrative = format_drivers_narrative(detail.drivers, asset)
+                st.markdown(drivers_narrative)
         
         # Hiển thị danh sách gốc trong expander
         with st.expander("📊 Xem drivers chi tiết (dạng danh sách)"):
@@ -269,8 +311,43 @@ Levels: R1={plan.levels.get('R1')}, R2={plan.levels.get('R2')}, S1={plan.levels.
     
     if detail.alternative_scenarios:
         st.markdown("### Nhận định của Ada")
-        scenarios_narrative = format_scenarios_narrative(detail.alternative_scenarios, asset)
-        st.markdown(scenarios_narrative)
+        
+        # AI-powered risk analysis
+        with st.spinner("Ada đang phân tích rủi ro và kịch bản thay thế..."):
+            ada_analyst = get_ada_analyst()
+            
+            if ada_analyst.model:
+                try:
+                    scenarios_list = "\n".join([f"- {s}" for s in detail.alternative_scenarios])
+                    
+                    prompt = f"""Bạn là Ada, chuyên gia quản lý rủi ro giao dịch {asset}.
+
+KỊCH BẢN RỦI RO ĐÃ XÁC ĐỊNH:
+{scenarios_list}
+
+VỊ THẾ HIỆN TẠI:
+- Bias: {detail.trade_plan.bias}
+- Entry trigger: {detail.trade_plan.trigger}
+- Invalidation: {detail.trade_plan.invalidation}
+
+Viết 2 đoạn văn ngắn gọn (mỗi đoạn 3-4 câu):
+
+**Đoạn 1**: Phân tích các kịch bản rủi ro trên - kịch bản nào có xác suất cao nhất và tại sao? Tác động của từng kịch bản lên vị thế giao dịch hiện tại.
+
+**Đoạn 2**: Khuyến nghị cụ thể về quản lý rủi ro - nên đặt stop-loss ở đâu, có nên giảm tỷ trọng không, và các tín hiệu cảnh báo cần theo dõi (ví dụ: nếu break level X thì kịch bản bullish bị vô hiệu).
+
+Viết bằng tiếng Việt, thực tế, có số liệu và levels cụ thể."""
+                    
+                    response = ada_analyst.model.generate_content(prompt)
+                    st.markdown(response.text)
+                except Exception as e:
+                    # Fallback
+                    scenarios_narrative = format_scenarios_narrative(detail.alternative_scenarios, asset)
+                    st.markdown(scenarios_narrative)
+            else:
+                # Fallback when AI unavailable
+                scenarios_narrative = format_scenarios_narrative(detail.alternative_scenarios, asset)
+                st.markdown(scenarios_narrative)
         
         # Hiển thị danh sách gốc trong expander
         with st.expander("📊 Xem kịch bản chi tiết (dạng danh sách)"):

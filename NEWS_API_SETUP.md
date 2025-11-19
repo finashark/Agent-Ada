@@ -23,7 +23,7 @@ alphavantage_key = "YX8BR3SF06HM130H"
 finnhub_key = "ciujme9r01qi3i2j92q0ciujme9r01qi3i2j92qg"
 
 [gemini]
-api_key = "AIzaSyBQUuZ8V5VycCBfg0XJ-U9bFszqxi_xmFY"
+api_key = "AIzaSyDCsVz0G7kbNG_4vXMdPkOXNkmEdYXDUnU"
 ```
 
 ### Bước 3: Save và Restart
