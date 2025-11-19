@@ -13,6 +13,8 @@ from components.timestamp import render_timestamp
 from components.copy import copy_section, copy_page_content
 from components.exporters import show_export_options
 from data_providers.overview import build_overview, get_cross_asset_table
+from data_providers.news_provider import NewsProvider
+from data_providers.ai_analyst import get_ada_analyst
 
 # Cấu hình trang
 st.set_page_config(
@@ -235,75 +237,40 @@ st.markdown("---")
 # ============== SECTION 5: QUAN ĐIỂM ĐẦU NGÀY ==============
 st.markdown("## 🎯 Quan điểm đầu ngày")
 
-st.markdown("### Nhận định của Ada")
+st.markdown("### Nhận định của Ada (AI-Generated)")
 
-# Đoạn 1: Phân tích hiện trạng
-st.markdown("""
-Dựa trên dữ liệu thị trường qua đêm và các chỉ báo kỹ thuật, thị trường hiện đang trong trạng thái **Neutral với xu hướng Risk-On nhẹ**. 
-Chỉ số S&P 500 đang kiểm tra lại vùng kháng cự quan trọng tại 4,600 điểm trên khung H4, trong khi VIX duy trì ở vùng dưới 15 cho thấy 
-tâm lý nhà đầu tư vẫn tương đối lạc quan. Đồng thời, chỉ số DXY đang dao động trong range 95-105, chưa có đột phá rõ ràng, 
-điều này giúp hạn chế áp lực lên các tài sản rủi ro như vàng và crypto.
+# Get AI-powered analysis
+with st.spinner("🤖 Ada đang phân tích thị trường với AI Gemini..."):
+    # Fetch news
+    news_provider = NewsProvider()
+    news_items = news_provider.get_news(hours_back=24, max_items=10)
+    
+    # Get AI analyst
+    ada_analyst = get_ada_analyst()
+    
+    # Get VIX, SPX, DXY from snapshot
+    vix_level = overview.market_snapshot.get("^VIX", {}).get("last", 20)
+    spx_change = overview.market_snapshot.get("^GSPC", {}).get("d1", 0)
+    dxy_level = overview.risk_sentiment.get("dxy", 100)
+    
+    # Generate AI analysis
+    ai_analysis = ada_analyst.generate_market_overview_analysis(
+        snapshot=overview.market_snapshot,
+        news=news_items,
+        vix_level=vix_level,
+        spx_change=spx_change,
+        dxy_level=dxy_level
+    )
+    
+    # Display analysis
+    st.markdown(ai_analysis)
 
-Các yếu tố hỗ trợ cho kịch bản tích cực bao gồm: (1) Dòng tiền vẫn đang chảy vào cổ phiếu công nghệ và tài sản rủi ro cao, 
-phản ánh qua volume giao dịch tăng trong các phiên gần đây; (2) Lợi suất trái phiếu Mỹ 10 năm (US 10Y Yield) ổn định, 
-không có dấu hiệu tăng đột biến gây lo ngại về lạm phát; (3) Không có sự kiện địa chính trị lớn tác động tiêu cực đến thị trường.
-""")
-
-st.markdown("")
-
-# Đoạn 2: Quan điểm và kịch bản giao dịch
-st.markdown("""
-**Quan điểm:** Trong phiên giao dịch hôm nay, chúng tôi nghiêng về kịch bản thị trường duy trì đà tăng nhẹ, với điều kiện 
-không có bất ngờ tiêu cực từ dữ liệu kinh tế. Tuy nhiên, cần thận trọng khi tiếp cận vì biến động có thể gia tăng quanh 
-thời điểm công bố CPI vào 20:30 (UTC+7) và FOMC Minutes.
-
-**Kịch bản giao dịch:**
-
-*Kịch bản Bullish (Xác suất 60%):* Nếu S&P 500 đóng nến H4 trên 4,600 với volume xác nhận (cao hơn trung bình 20 phiên), 
-đây là tín hiệu mua mạnh. Các cổ phiếu công nghệ lớn (AAPL, NVDA, MSFT) và crypto (BTC, ETH) có thể tiếp tục tăng. 
-Timeframe ưu tiên: H4-D1. Stop loss nên đặt dưới MA20 hoặc vùng hỗ trợ gần nhất.
-
-*Kịch bản Bearish (Xác suất 25%):* Nếu CPI vượt kỳ vọng (>3.5%) hoặc VIX bất ngờ tăng trên 22, thị trường có thể đảo chiều 
-và đi vào tâm lý risk-off. Trong trường hợp này, nên chốt lời các vị thế long và cân nhắc short S&P 500, đồng thời 
-tăng tỷ trọng tài sản an toàn như USD hoặc trái phiếu chính phủ.
-
-*Kịch bản Neutral (Xác suất 15%):* Nếu thị trường không có động lực rõ ràng, giá có thể dao động trong range hẹp. 
-Khuyến nghị đứng ngoài hoặc chỉ giao dịch ngắn hạn với volume nhỏ.
-
-**Các rủi ro cần lưu ý:** CPI data tại 20:30 (UTC+7), FOMC Minutes, và mùa báo cáo thu nhập Q4 đang diễn ra có thể 
-gây biến động bất ngờ. Luôn đặt stop loss và quản lý rủi ro chặt chẽ.
-""")
-
-market_view_text = """
-NHẬN ĐỊNH CỦA ADA - QUAN ĐIỂM ĐẦU NGÀY
-
-Dựa trên dữ liệu thị trường qua đêm và các chỉ báo kỹ thuật, thị trường hiện đang trong trạng thái Neutral với xu hướng Risk-On nhẹ. 
-Chỉ số S&P 500 đang kiểm tra lại vùng kháng cự quan trọng tại 4,600 điểm trên khung H4, trong khi VIX duy trì ở vùng dưới 15 cho thấy 
-tâm lý nhà đầu tư vẫn tương đối lạc quan.
-
-Các yếu tố hỗ trợ kịch bản tích cực: (1) Dòng tiền vẫn đang chảy vào cổ phiếu công nghệ và tài sản rủi ro cao; 
-(2) Lợi suất trái phiếu Mỹ 10 năm ổn định; (3) Không có sự kiện địa chính trị lớn.
-
-KỊCH BẢN GIAO DỊCH:
-
-Kịch bản Bullish (60%): Nếu S&P 500 đóng nến H4 trên 4,600 với volume cao, đây là tín hiệu mua mạnh. 
-Các cổ phiếu công nghệ lớn (AAPL, NVDA, MSFT) và crypto (BTC, ETH) có thể tiếp tục tăng. 
-Timeframe: H4-D1. Stop loss đặt dưới MA20.
-
-Kịch bản Bearish (25%): Nếu CPI vượt kỳ vọng (>3.5%) hoặc VIX tăng trên 22, thị trường có thể đảo chiều risk-off. 
-Nên chốt lời long và cân nhắc short S&P 500, tăng tỷ trọng USD/trái phiếu chính phủ.
-
-Kịch bản Neutral (15%): Nếu không có động lực rõ ràng, giá có thể dao động trong range hẹp. 
-Khuyến nghị đứng ngoài hoặc giao dịch ngắn hạn volume nhỏ.
-
-RỦI RO: CPI data 20:30 (UTC+7), FOMC Minutes, Earnings Q4. Luôn đặt stop loss và quản lý rủi ro chặt chẽ.
-"""
-
+# Copy button
 copy_section(
-    "Quan điểm đầu ngày",
-    market_view_text,
+    "Quan điểm đầu ngày (AI-Generated)",
+    ai_analysis,
     show_preview=False,
-    key_suffix="view"
+    key_suffix="ai_view"
 )
 
 st.markdown("---")
@@ -327,10 +294,10 @@ Phiên: {overview.session}
 {risk_text if overview.risk_sentiment else 'Không có dữ liệu'}
 
 === QUAN ĐIỂM ĐẦU NGÀY ===
-{market_view_text}
+{ai_analysis}
 
 ---
-Nguồn: yfinance | Developed by Ken © 2025
+Nguồn: yfinance + Gemini AI | Developed by Ken © 2025
 """
 
 copy_page_content(full_page_content, label="📄 Copy toàn trang")

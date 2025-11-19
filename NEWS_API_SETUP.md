@@ -1,6 +1,6 @@
-# 🔑 Hướng dẫn cấu hình News API trên Streamlit Cloud
+# 🔑 Hướng dẫn cấu hình API Keys trên Streamlit Cloud
 
-## ❗ Vấn đề: "Không thể tải tin tức từ các API"
+## ❗ Vấn đề: "Không thể tải tin tức" hoặc "AI Analysis không khả dụng"
 
 Nếu bạn thấy warning này trên Streamlit Cloud, nghĩa là **secrets chưa được cấu hình**.
 
@@ -21,6 +21,9 @@ Nếu bạn thấy warning này trên Streamlit Cloud, nghĩa là **secrets chư
 newsapi_key = "ab2c6f479852474a87498b70d7d2b38e"
 alphavantage_key = "YX8BR3SF06HM130H"
 finnhub_key = "ciujme9r01qi3i2j92q0ciujme9r01qi3i2j92qg"
+
+[gemini]
+api_key = "AIzaSyBQUuZ8V5VycCBfg0XJ-U9bFszqxi_xmFY"
 ```
 
 ### Bước 3: Save và Restart
@@ -43,10 +46,12 @@ Sau khi cấu hình xong:
    NewsAPI key: ✓ Present
    Alpha Vantage key: ✓ Present
    Finnhub key: ✓ Present
+   Gemini key: ✓ Present
    ```
 
 4. Tin tức sẽ load trong vòng 3-5 giây
 5. Thấy message: **"✅ Đã tải X tin tức mới nhất..."**
+6. **Trang 1 - Quan điểm đầu ngày:** Phải thấy "🤖 Ada đang phân tích thị trường với AI Gemini..." → Nhận định chi tiết bằng tiếng Việt
 
 ---
 
@@ -64,10 +69,14 @@ Sau khi cấu hình xong:
   - NewsAPI: 100 requests/day
   - Alpha Vantage: 25 requests/day
   - Finnhub: 60 calls/minute
+  - Gemini AI: 60 requests/minute (free tier)
 
 - **Cache:** Tin tức được cache 30 phút → Chỉ dùng ~48 requests/day
+- **AI Analysis:** Cached 1 giờ, tự động regenerate khi có tin tức mới
 
-- **Fallback:** Nếu NewsAPI hết quota, app tự động dùng Alpha Vantage hoặc Finnhub
+- **Fallback:** 
+  - Nếu NewsAPI hết quota, app tự động dùng Alpha Vantage hoặc Finnhub
+  - Nếu Gemini unavailable, app dùng phân tích tự động dựa trên rules
 
 ---
 

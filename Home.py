@@ -126,7 +126,6 @@ with col2:
     <div class="feature-card">
         <div class="feature-title">📊 Trang 2: Chi tiết thị trường</div>
         <ul>
-            <li>US Equities (Top 10)</li>
             <li>Vàng (XAUUSD)</li>
             <li>FX Majors</li>
             <li>Crypto</li>

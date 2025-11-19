@@ -12,7 +12,7 @@ from components.timestamp import render_timestamp
 from components.copy import copy_section, copy_page_content
 from components.exporters import show_export_options
 from data_providers.market_details import (
-    build_detail, build_top10_equities,
+    build_detail,
     FX_MAJORS, CRYPTO_MAJORS, OIL_TICKERS, GLOBAL_INDICES
 )
 
@@ -50,7 +50,6 @@ st.markdown("---")
 
 # Tabs
 tabs = st.tabs([
-    "🇺🇸 US Equities",
     "🥇 Vàng (XAUUSD)",
     "💱 FX Majors",
     "₿ Crypto",
@@ -287,64 +286,8 @@ Levels: R1={plan.levels.get('R1')}, R2={plan.levels.get('R2')}, S1={plan.levels.
     st.markdown("---")
 
 
-# ============== TAB 1: US EQUITIES ==============
+# ============== TAB 1: VÀNG ==============
 with tabs[0]:
-    st.markdown("## 🇺🇸 US Equities - Top 10 cổ phiếu tăng mạnh nhất")
-    
-    with st.spinner("Đang phân tích NASDAQ Large-Cap..."):
-        top10 = build_top10_equities(universe="NASDAQ Large-Cap")
-    
-    st.markdown(f"**Universe:** {top10.universe}")
-    st.markdown(f"**Phương pháp:** {top10.method}")
-    render_timestamp(
-        datetime.fromisoformat(top10.last_updated),
-        tz_name,
-        "Asia"
-    )
-    
-    # Bảng Top 10
-    if top10.items:
-        data = []
-        for item in top10.items:
-            data.append({
-                "Ticker": item.ticker,
-                "Last": f"{item.last:.2f}",
-                "%D/D": f"{item.pct_change:+.2f}%",
-                "Vol/20D": f"{item.vol_ratio:.2f}x",
-                "Catalyst": item.catalyst if item.catalyst else "N/A",
-                "Idea": item.idea if item.idea else "N/A",
-                "Score": f"{item.score:.2f}"
-            })
-        
-        df = pd.DataFrame(data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        
-        # Export & Copy
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            show_export_options(
-                data_csv=data,
-                data_json=data,
-                prefix="top10_equities"
-            )
-        
-        with col2:
-            top10_text = "\n".join([f"{i+1}. {item.ticker} - {item.pct_change:+.2f}% - {item.idea}" 
-                                    for i, item in enumerate(top10.items)])
-            copy_section("Top 10 Equities", top10_text, show_preview=False, key_suffix="top10")
-    
-    # Check if using fallback data
-    if top10.last_updated and "fallback" in top10.method.lower():
-        st.info("ℹ️ Đang dùng dữ liệu mẫu do không thể kết nối yfinance API. Dữ liệu thực sẽ load trong vài phút.")
-    
-    # Score components
-    st.markdown("### Score Components")
-    st.json(top10.score_components)
-
-
-# ============== TAB 2: VÀNG ==============
-with tabs[1]:
     st.markdown("## 🥇 Vàng (XAUUSD)")
     
     with st.spinner("Đang tải dữ liệu vàng..."):
@@ -374,8 +317,8 @@ with tabs[1]:
                          delta=f"{us10y_snap.get('pct_d1', 0):+.2f}%")
 
 
-# ============== TAB 3: FX MAJORS ==============
-with tabs[2]:
+# ============== TAB 2: FX MAJORS ==============
+with tabs[1]:
     st.markdown("## 💱 FX Majors")
     
     selected_fx = st.selectbox("Chọn cặp FX:", FX_MAJORS, index=0)
@@ -407,8 +350,8 @@ with tabs[2]:
             st.dataframe(fx_df, use_container_width=True, hide_index=True)
 
 
-# ============== TAB 4: CRYPTO ==============
-with tabs[3]:
+# ============== TAB 3: CRYPTO ==============
+with tabs[2]:
     st.markdown("## ₿ Crypto Large Caps")
     
     selected_crypto = st.selectbox("Chọn crypto:", CRYPTO_MAJORS, index=0)
@@ -440,8 +383,8 @@ with tabs[3]:
             st.dataframe(crypto_df, use_container_width=True, hide_index=True)
 
 
-# ============== TAB 5: DẦU ==============
-with tabs[4]:
+# ============== TAB 4: DẦU ==============
+with tabs[3]:
     st.markdown("## 🛢️ Dầu (WTI / Brent)")
     
     selected_oil = st.selectbox("Chọn loại dầu:", OIL_TICKERS, 
@@ -472,8 +415,8 @@ with tabs[4]:
                      delta=f"{brent_snap.get('pct_d1', 0):+.2f}%")
 
 
-# ============== TAB 6: CHỈ SỐ ==============
-with tabs[5]:
+# ============== TAB 5: CHỈ SỐ ==============
+with tabs[4]:
     st.markdown("## 📈 Chỉ số toàn cầu")
     
     selected_index = st.selectbox("Chọn chỉ số:", GLOBAL_INDICES, index=0)
