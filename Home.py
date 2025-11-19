@@ -2,8 +2,11 @@
 Home.py - Trang chủ của ứng dụng báo cáo thị trường
 """
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import pytz
+import pandas as pd
+from data_providers.overview import get_market_snapshot, build_overview
+from data_providers.market_details import build_top10_equities
 
 # Cấu hình trang
 st.set_page_config(
@@ -47,6 +50,32 @@ st.markdown("""
         border-radius: 8px;
         border-left: 4px solid #1f77b4;
         margin: 10px 0;
+    }
+    .summary-box {
+        background-color: #fff3e0;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #ff9800;
+        margin: 15px 0;
+    }
+    .news-box {
+        background-color: #f3e5f5;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #9c27b0;
+        margin: 10px 0;
+    }
+    .metric-positive {
+        color: #4caf50;
+        font-weight: bold;
+    }
+    .metric-negative {
+        color: #f44336;
+        font-weight: bold;
+    }
+    .metric-neutral {
+        color: #ff9800;
+        font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -203,18 +232,223 @@ with st.expander("🎓 Hiểu về chỉ số và thuật ngữ"):
 
 st.markdown("---")
 
+# ============== BÁO CÁO TỔNG HỢP ==============
+st.markdown("## 📊 Báo cáo tổng hợp nhanh")
+
+with st.spinner("Đang tổng hợp dữ liệu từ các trang..."):
+    try:
+        # Lấy dữ liệu thị trường
+        snapshot = get_market_snapshot()
+        overview = build_overview()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 🌟 Điểm nổi bật")
+            
+            # VIX & Risk Sentiment
+            if "^VIX" in snapshot:
+                vix = snapshot["^VIX"]["last"]
+                vix_color = "metric-negative" if vix > 20 else "metric-positive" if vix < 15 else "metric-neutral"
+                risk_mode = "Risk-Off (Lo ngại cao)" if vix > 20 else "Risk-On (Thị trường ổn định)" if vix < 15 else "Neutral"
+                st.markdown(f"""
+                <div class="summary-box">
+                    <strong>🎯 Tâm lý thị trường:</strong> <span class="{vix_color}">{risk_mode}</span><br>
+                    VIX hiện tại: <strong>{vix:.2f}</strong> ({snapshot["^VIX"]["d1"]:+.2f}%)
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # S&P 500
+            if "^GSPC" in snapshot:
+                spx = snapshot["^GSPC"]
+                spx_color = "metric-positive" if spx["d1"] > 0 else "metric-negative"
+                st.markdown(f"""
+                <div class="summary-box">
+                    <strong>📈 S&P 500:</strong> <span class="{spx_color}">{spx['last']:.2f} ({spx['d1']:+.2f}%)</span><br>
+                    WTD: {spx['wtd']:+.2f}% | MTD: {spx['mtd']:+.2f}%
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # DXY
+            if "^DXY" in snapshot:
+                dxy = snapshot["^DXY"]
+                dxy_trend = "Mạnh (>105)" if dxy["last"] > 105 else "Yếu (<95)" if dxy["last"] < 95 else "Neutral"
+                st.markdown(f"""
+                <div class="summary-box">
+                    <strong>💵 USD Index (DXY):</strong> {dxy['last']:.2f} - {dxy_trend}<br>
+                    Hôm nay: {dxy['d1']:+.2f}%
+                </div>
+                """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("### 🏆 Top Performers")
+            
+            try:
+                # Lấy Top 3 từ NASDAQ
+                top10 = build_top10_equities(universe="NASDAQ Large-Cap")
+                if top10.items and len(top10.items) >= 3:
+                    st.markdown("**Top 3 cổ phiếu tăng mạnh nhất (NASDAQ):**")
+                    for i, item in enumerate(top10.items[:3], 1):
+                        color = "metric-positive" if item.pct_change > 0 else "metric-negative"
+                        st.markdown(f"""
+                        <div class="summary-box">
+                            <strong>{i}. {item.ticker}</strong>: <span class="{color}">${item.last:.2f} ({item.pct_change:+.2f}%)</span><br>
+                            <small>{item.idea}</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("📊 Đang cập nhật Top performers...")
+            except Exception as e:
+                st.info("📊 Đang cập nhật Top performers...")
+            
+            # Commodities nổi bật
+            if "GC=F" in snapshot and "CL=F" in snapshot:
+                gold = snapshot["GC=F"]
+                oil = snapshot["CL=F"]
+                st.markdown("**Hàng hóa:**")
+                st.markdown(f"""
+                <div class="summary-box">
+                    <strong>🥇 Vàng:</strong> ${gold['last']:.2f} ({gold['d1']:+.2f}%)<br>
+                    <strong>🛢️ Dầu WTI:</strong> ${oil['last']:.2f} ({oil['d1']:+.2f}%)
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Quan điểm tổng hợp
+        st.markdown("### 💡 Quan điểm tổng hợp của Ada")
+        
+        # Xây dựng nhận định tự động dựa trên dữ liệu
+        market_bias = "Neutral"
+        if "^VIX" in snapshot and "^GSPC" in snapshot:
+            vix = snapshot["^VIX"]["last"]
+            spx_d1 = snapshot["^GSPC"]["d1"]
+            
+            if vix < 15 and spx_d1 > 0.5:
+                market_bias = "Bullish (Risk-On)"
+                bias_color = "metric-positive"
+            elif vix > 20 or spx_d1 < -1.0:
+                market_bias = "Bearish (Risk-Off)"
+                bias_color = "metric-negative"
+            else:
+                market_bias = "Neutral (Quan sát)"
+                bias_color = "metric-neutral"
+        else:
+            bias_color = "metric-neutral"
+        
+        st.markdown(f"""
+        <div class="summary-box">
+            <strong>🎯 Bias thị trường:</strong> <span class="{bias_color}">{market_bias}</span><br><br>
+            
+            <strong>Điểm cần chú ý:</strong><br>
+            • Theo dõi VIX và DXY để đánh giá tâm lý rủi ro<br>
+            • Kiểm tra lịch kinh tế (CPI, FOMC) có thể gây biến động<br>
+            • Top stocks NASDAQ đang dẫn dắt thị trường<br>
+            • Vàng và Dầu phản ánh dòng tiền an toàn vs rủi ro<br><br>
+            
+            <strong>⏰ Phiên giao dịch hiện tại:</strong> {overview.session}<br>
+            <strong>🕐 Cập nhật lần cuối:</strong> {datetime.fromisoformat(overview.last_updated).strftime('%Y-%m-%d %H:%M:%S UTC')}
+        </div>
+        """, unsafe_allow_html=True)
+        
+    except Exception as e:
+        st.warning(f"⚠️ Đang tải dữ liệu tổng hợp... (Có thể mất vài giây)")
+
+st.markdown("---")
+
+# ============== TIN TỨC QUAN TRỌNG ==============
+st.markdown("## 📰 Tin tức & Sự kiện quan trọng")
+
+st.info("📌 **Lưu ý:** Đây là dữ liệu mẫu. Tích hợp API tin tức thực tế cần API key từ NewsAPI, Alpha Vantage, hoặc Bloomberg.")
+
+# Mock news data (3 phiên gần nhất)
+now = datetime.now(timezone.utc)
+news_items = [
+    {
+        "time": (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M"),
+        "asset": "S&P 500",
+        "title": "Fed giữ nguyên lãi suất 5.25-5.50%, tín hiệu dovish",
+        "impact": "High",
+        "sentiment": "Positive",
+        "source": "Reuters"
+    },
+    {
+        "time": (now - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M"),
+        "asset": "NVDA",
+        "title": "NVIDIA báo cáo thu nhập Q4 vượt kỳ vọng, doanh thu AI tăng 78%",
+        "impact": "High",
+        "sentiment": "Positive",
+        "source": "Bloomberg"
+    },
+    {
+        "time": (now - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M"),
+        "asset": "BTCUSDT",
+        "title": "Bitcoin ETF có dòng vào ròng $500M trong tuần qua",
+        "impact": "Medium",
+        "sentiment": "Positive",
+        "source": "CoinDesk"
+    },
+    {
+        "time": (now - timedelta(hours=12)).strftime("%Y-%m-%d %H:%M"),
+        "asset": "Gold",
+        "title": "Vàng giảm xuống $2,010 khi USD mạnh lên, nhà đầu tư chốt lời",
+        "impact": "Medium",
+        "sentiment": "Negative",
+        "source": "Kitco"
+    },
+    {
+        "time": (now - timedelta(hours=16)).strftime("%Y-%m-%d %H:%M"),
+        "asset": "Oil",
+        "title": "OPEC+ duy trì cắt giảm sản lượng, dầu WTI tăng 2.3%",
+        "impact": "Medium",
+        "sentiment": "Positive",
+        "source": "CNBC"
+    },
+    {
+        "time": (now - timedelta(hours=20)).strftime("%Y-%m-%d %H:%M"),
+        "asset": "EUR/USD",
+        "title": "ECB cảnh báo về rủi ro lạm phát dai dẳng tại Eurozone",
+        "impact": "Medium",
+        "sentiment": "Negative",
+        "source": "Financial Times"
+    }
+]
+
+# Hiển thị tin tức
+for news in news_items:
+    impact_color = "#ff5252" if news["impact"] == "High" else "#ff9800" if news["impact"] == "Medium" else "#4caf50"
+    sentiment_emoji = "🟢" if news["sentiment"] == "Positive" else "🔴" if news["sentiment"] == "Negative" else "🟡"
+    
+    st.markdown(f"""
+    <div class="news-box">
+        <strong>{sentiment_emoji} {news['asset']}</strong> | 
+        <span style="color: {impact_color}; font-weight: bold;">{news['impact']} Impact</span> | 
+        <small>{news['time']}</small><br>
+        <strong>{news['title']}</strong><br>
+        <small>📰 Nguồn: {news['source']}</small>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.caption("""
+💡 **Cách tích hợp tin tức thực tế:**
+- **NewsAPI** (newsapi.org): Free tier 100 requests/day, hỗ trợ filter theo keyword
+- **Alpha Vantage** (alphavantage.co): Free news & sentiment API
+- **Finnhub** (finnhub.io): Real-time news cho stocks, forex, crypto
+- **RSS Feeds**: Reuters, Bloomberg, CNBC (miễn phí nhưng cần parse)
+""")
+
+st.markdown("---")
+
 # Status
 st.markdown("## ℹ️ Thông tin hệ thống")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Phiên bản", "v1.0.0")
+    st.metric("Phiên bản", "v1.1.0")
 
 with col2:
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    now = datetime.now(tz)
-    st.metric("Thời gian hiện tại (VN)", now.strftime("%H:%M:%S"))
+    now_time = datetime.now(tz)
+    st.metric("Thời gian hiện tại (VN)", now_time.strftime("%H:%M:%S"))
 
 with col3:
     st.metric("Nguồn dữ liệu", "yfinance + mock")

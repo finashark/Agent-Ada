@@ -297,7 +297,7 @@ try:
                             "Status": "🟢 Longs trả" if fp.rate > 0 else "🔴 Shorts trả" if fp.rate < 0 else "⚪ Neutral"
                         })
                 except Exception as e:
-                    st.warning(f"⚠️ Không thể lấy funding rate từ {exchange} cho {symbol}: {str(e)[:100]}")
+                    # Bỏ qua im lặng nếu API không khả dụng (403, 451, timeout, etc.)
                     continue
         
         if funding_data:
@@ -306,12 +306,16 @@ try:
             
             # Analysis
             st.markdown("#### Phân tích")
-            avg_btc = funding_df[funding_df['Symbol'].str.contains('BTC')]['Funding Rate'].str.rstrip('%').astype(float).mean()
-            if abs(avg_btc) > 0.05:
-                sentiment = "🟢 Bullish mạnh" if avg_btc > 0 else "🔴 Bearish mạnh"
-                st.warning(f"**BTC:** {sentiment} - Funding rate trung bình: {avg_btc:.4f}%")
+            btc_rows = funding_df[funding_df['Symbol'].str.contains('BTC')]
+            if not btc_rows.empty:
+                avg_btc = btc_rows['Funding Rate'].str.rstrip('%').astype(float).mean()
+                if abs(avg_btc) > 0.05:
+                    sentiment = "🟢 Bullish mạnh" if avg_btc > 0 else "🔴 Bearish mạnh"
+                    st.warning(f"**BTC:** {sentiment} - Funding rate trung bình: {avg_btc:.4f}%")
+                else:
+                    st.success(f"**BTC:** ⚪ Neutral - Funding rate trung bình: {avg_btc:.4f}%")
             else:
-                st.success(f"**BTC:** ⚪ Neutral - Funding rate trung bình: {avg_btc:.4f}%")
+                st.info("⚪ Không đủ dữ liệu BTC để phân tích")
             
             # Export & Copy
             col1, col2 = st.columns(2)
@@ -326,7 +330,7 @@ try:
                 funding_text = funding_df.to_string(index=False)
                 copy_section("Crypto Funding Rate", funding_text, show_preview=False, key_suffix="funding")
         else:
-            st.warning("⚠️ Không có dữ liệu funding rate")
+            st.info("📊 Không có dữ liệu funding rate từ các sàn (có thể do API giới hạn hoặc bảo trì)")
     
     with oi_tab:
         st.markdown("### Open Interest hiện tại")
@@ -347,7 +351,7 @@ try:
                             "Value (USD)": f"${oi.meta.get('sumOpenInterestValue', 0):,.0f}" if 'sumOpenInterestValue' in oi.meta else "N/A"
                         })
                 except Exception as e:
-                    st.warning(f"⚠️ Không thể lấy OI từ {exchange} cho {symbol}: {str(e)[:100]}")
+                    # Bỏ qua im lặng nếu API không khả dụng (403, 451, timeout, etc.)
                     continue
         
         if oi_data:
@@ -375,16 +379,11 @@ try:
                 oi_text = oi_df.to_string(index=False)
                 copy_section("Crypto Open Interest", oi_text, show_preview=False, key_suffix="oi")
         else:
-            st.warning("⚠️ Không có dữ liệu Open Interest")
+            st.info("📊 Không có dữ liệu Open Interest từ các sàn (có thể do API giới hạn hoặc bảo trì)")
 
 except Exception as e:
-    st.error(f"❌ Lỗi khi tải dữ liệu derivatives: {e}")
-    st.info("""
-    💡 **Gợi ý:**
-    - Kiểm tra kết nối internet
-    - Một số sàn có thể bị giới hạn rate limit
-    - Thử lại sau vài phút
-    """)
+    # Bỏ qua im lặng - không hiển thị lỗi khi API không khả dụng
+    pass
 
 st.markdown("---")
 
