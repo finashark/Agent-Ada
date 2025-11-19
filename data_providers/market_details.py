@@ -294,6 +294,42 @@ def get_sp500_tickers() -> List[str]:
         return ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "BRK-B", "JPM", "V"]
 
 
+def get_nasdaq_large_caps() -> List[str]:
+    """
+    Lấy danh sách cổ phiếu vốn hóa lớn và phổ biến trên NASDAQ
+    
+    Sử dụng các chỉ số thành phần của NASDAQ-100 và một số cổ phiếu blue-chip khác
+    
+    Returns:
+        List tickers NASDAQ large-cap
+    """
+    # NASDAQ-100 major components + thêm một số cổ phiếu phổ biến
+    nasdaq_tickers = [
+        # Tech Giants
+        "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "META", "NVDA", "TSLA",
+        # Semiconductors
+        "AVGO", "AMD", "INTC", "QCOM", "MU", "AMAT", "LRCX", "KLAC", "MRVL", "NXPI",
+        # Software & Cloud
+        "ORCL", "ADBE", "CRM", "NOW", "INTU", "PANW", "SNPS", "CDNS", "ANSS", "WDAY",
+        # E-commerce & Consumer
+        "COST", "SBUX", "ABNB", "BKNG", "EBAY", "JD", "PDD", "MELI",
+        # Biotech & Healthcare
+        "GILD", "AMGN", "REGN", "VRTX", "BIIB", "MRNA", "ILMN", "SGEN",
+        # Communications & Media
+        "NFLX", "CMCSA", "CHTR", "EA", "ATVI", "TTWO",
+        # Payment & Fintech
+        "PYPL", "ADYEN", "SQ",
+        # Other major NASDAQ
+        "CSCO", "PEP", "TMUS", "TXN", "HON", "ADP", "ISRG", "LULU", "MDLZ", "ADI",
+        "ASML", "PAYX", "CTAS", "MAR", "MCHP", "PCAR", "AEP", "KDP", "MNST", "DXCM",
+        # Recent additions (AI wave)
+        "ARM", "CRWD", "FTNT", "ZS", "DDOG", "NET", "SNOW", "MDB", "PLTR", "RBLX",
+    ]
+    
+    logger.info(f"Using {len(nasdaq_tickers)} NASDAQ large-cap tickers")
+    return nasdaq_tickers
+
+
 def calculate_stock_score(ticker: str, pct_change: float, vol_ratio: float, has_news: bool = False) -> float:
     """
     Tính điểm xếp hạng cổ phiếu
@@ -320,9 +356,12 @@ def calculate_stock_score(ticker: str, pct_change: float, vol_ratio: float, has_
 
 
 @st.cache_data(ttl=600, show_spinner=False)
-def build_top10_equities(universe: str = "S&P 500") -> EquityTop10:
+def build_top10_equities(universe: str = "NASDAQ Large-Cap") -> EquityTop10:
     """
-    Xây dựng Top 10 cổ phiếu đáng chú ý
+    Xây dựng Top 10 cổ phiếu tăng mạnh nhất trong phiên gần nhất
+    
+    Universe: Các cổ phiếu vốn hóa lớn và phổ biến trên NASDAQ
+    Xếp hạng: Top 10 cổ phiếu có % tăng cao nhất trong phiên gần nhất
     
     Args:
         universe: Universe name
@@ -330,21 +369,21 @@ def build_top10_equities(universe: str = "S&P 500") -> EquityTop10:
     Returns:
         EquityTop10 object
     """
-    logger.info("Building Top 10 equities...")
+    logger.info("Building Top 10 strongest NASDAQ equities...")
     
-    # Lấy danh sách tickers
-    tickers = get_sp500_tickers()
-    
-    # Sample một số tickers để demo (thực tế nên xử lý toàn bộ)
-    sample_tickers = np.random.choice(tickers, size=min(50, len(tickers)), replace=False)
+    # Lấy danh sách NASDAQ large-caps
+    tickers = get_nasdaq_large_caps()
     
     items = []
     
-    for ticker in sample_tickers:
+    # Fetch giá cho tất cả tickers (batch download nhanh hơn)
+    logger.info(f"Fetching prices for {len(tickers)} NASDAQ tickers...")
+    
+    for ticker in tickers:
         try:
             df = fetch_ohlc(ticker, period="1mo", interval="1d")
             
-            if df.empty or len(df) < 22:
+            if df.empty or len(df) < 2:
                 continue
             
             last = float(df["Close"].iloc[-1])
@@ -352,21 +391,36 @@ def build_top10_equities(universe: str = "S&P 500") -> EquityTop10:
             pct_change = ((last / prev) - 1) * 100
             
             # Tính vol ratio
-            vol_20d_avg = df["Volume"].tail(20).mean()
-            last_vol = float(df["Volume"].iloc[-1])
-            vol_ratio = last_vol / vol_20d_avg if vol_20d_avg > 0 else 1.0
+            if len(df) >= 20:
+                vol_20d_avg = df["Volume"].tail(20).mean()
+                last_vol = float(df["Volume"].iloc[-1])
+                vol_ratio = last_vol / vol_20d_avg if vol_20d_avg > 0 else 1.0
+            else:
+                vol_ratio = 1.0
             
-            # Tính score
-            score = calculate_stock_score(ticker, pct_change, vol_ratio, has_news=False)
+            # Simple score = pct_change (chỉ xếp hạng theo % tăng)
+            score = pct_change
+            
+            # Tạo idea dựa trên % thay đổi
+            if pct_change > 5:
+                idea = "Tăng đột biến - cảnh báo profit-taking"
+            elif pct_change > 3:
+                idea = "Momentum mạnh - theo dõi pullback"
+            elif pct_change > 1:
+                idea = "Tăng nhẹ - xu hướng tích cực"
+            elif pct_change > 0:
+                idea = "Tăng yếu - consolidation"
+            else:
+                idea = "Điều chỉnh - chờ entry"
             
             item = EquityItem(
                 ticker=ticker,
                 last=last,
                 pct_change=pct_change,
                 vol_ratio=vol_ratio,
-                catalyst="Earnings/News pending",
-                source_url="",
-                idea="Monitor breakout" if pct_change > 2 else "Range-bound",
+                catalyst="Market momentum",
+                source_url=f"https://finance.yahoo.com/quote/{ticker}",
+                idea=idea,
                 score=score
             )
             
@@ -376,25 +430,25 @@ def build_top10_equities(universe: str = "S&P 500") -> EquityTop10:
             logger.warning(f"Error processing {ticker}: {e}")
             continue
     
-    # Sort by score descending
-    items.sort(key=lambda x: x.score, reverse=True)
+    # Sắp xếp theo % tăng giảm (descending)
+    items.sort(key=lambda x: x.pct_change, reverse=True)
     
-    # Lấy top 10
+    # Lấy top 10 tăng mạnh nhất
     top_items = items[:10]
     
     result = EquityTop10(
         universe=universe,
-        method="rank = zscore(%d/d) + zscore(Vol/20D) + news_flag",
+        method="Top 10 cổ phiếu tăng mạnh nhất trong phiên gần nhất (theo %d/d)",
         items=top_items,
         score_components={
-            "pct_change_weight": 1.0,
-            "vol_ratio_weight": 1.0,
-            "news_flag_weight": 1.0
+            "ranking_criteria": "% Change D/D",
+            "universe": "NASDAQ Large-Cap (~100 stocks)",
+            "note": "Score = % Change, không weighted"
         },
         last_updated=datetime.now(timezone.utc).isoformat()
     )
     
-    logger.info(f"Top 10 equities built with {len(top_items)} items")
+    logger.info(f"Top 10 equities built with {len(top_items)} items (strongest gainers)")
     return result
 
 

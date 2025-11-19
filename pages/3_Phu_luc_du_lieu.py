@@ -14,6 +14,7 @@ from components.copy import copy_section, copy_page_content
 from components.exporters import show_export_options
 from data_providers.overview import get_cross_asset_table, CORE_ASSETS, fetch_prices
 from data_providers.market_details import fetch_ohlc, build_snapshot
+from data_providers.derivatives_wrappers import DerivsClient
 
 # Cấu hình trang
 st.set_page_config(
@@ -260,26 +261,130 @@ with st.spinner("Đang tính toán chỉ báo kỹ thuật..."):
 
 st.markdown("---")
 
-# ============== MODULE 4: CRYPTO FUNDING/OI (TUỲ CHỌN) ==============
-st.markdown("## ₿ Crypto Funding Rate & Open Interest (Tuỳ chọn)")
+# ============== MODULE 4: CRYPTO FUNDING/OI ==============
+st.markdown("## ₿ Crypto Funding Rate & Open Interest")
 
-st.info("""
-📌 **Lưu ý:** Module này yêu cầu API key từ các sàn crypto (Binance, Bybit, etc.)
+st.info("📊 Dữ liệu Funding Rate và Open Interest từ các sàn chính (Binance, Bybit, OKX, Deribit)")
 
-Hiện tại chưa có API key nên module này được ẩn. 
+# Initialize derivatives client
+try:
+    derivs_client = DerivsClient()
+    
+    # Crypto symbols to track
+    crypto_symbols = ["BTCUSDT", "ETHUSDT"]
+    exchanges = ["binance", "bybit", "okx"]
+    
+    # Tab cho Funding Rate và OI
+    funding_tab, oi_tab = st.tabs(["📈 Funding Rate", "📊 Open Interest"])
+    
+    with funding_tab:
+        st.markdown("### Funding Rate hiện tại")
+        st.caption("Funding rate dương → Long trả Short | Funding rate âm → Short trả Long")
+        
+        funding_data = []
+        
+        for symbol in crypto_symbols:
+            for exchange in exchanges:
+                try:
+                    fp = derivs_client.funding_latest(exchange, symbol)
+                    if fp:
+                        funding_data.append({
+                            "Exchange": fp.exchange,
+                            "Symbol": fp.symbol,
+                            "Funding Rate": f"{fp.rate * 100:.4f}%",
+                            "Annual Rate": f"{fp.rate * 100 * 365 * 3:.2f}%",  # 3 times per day
+                            "Timestamp": pd.to_datetime(fp.ts, unit='ms').strftime('%Y-%m-%d %H:%M:%S'),
+                            "Status": "🟢 Longs trả" if fp.rate > 0 else "🔴 Shorts trả" if fp.rate < 0 else "⚪ Neutral"
+                        })
+                except Exception as e:
+                    st.warning(f"⚠️ Không thể lấy funding rate từ {exchange} cho {symbol}: {str(e)[:100]}")
+                    continue
+        
+        if funding_data:
+            funding_df = pd.DataFrame(funding_data)
+            st.dataframe(funding_df, use_container_width=True, hide_index=True)
+            
+            # Analysis
+            st.markdown("#### Phân tích")
+            avg_btc = funding_df[funding_df['Symbol'].str.contains('BTC')]['Funding Rate'].str.rstrip('%').astype(float).mean()
+            if abs(avg_btc) > 0.05:
+                sentiment = "🟢 Bullish mạnh" if avg_btc > 0 else "🔴 Bearish mạnh"
+                st.warning(f"**BTC:** {sentiment} - Funding rate trung bình: {avg_btc:.4f}%")
+            else:
+                st.success(f"**BTC:** ⚪ Neutral - Funding rate trung bình: {avg_btc:.4f}%")
+            
+            # Export & Copy
+            col1, col2 = st.columns(2)
+            with col1:
+                show_export_options(
+                    data_csv=funding_data,
+                    data_json=funding_data,
+                    prefix="crypto_funding"
+                )
+            
+            with col2:
+                funding_text = funding_df.to_string(index=False)
+                copy_section("Crypto Funding Rate", funding_text, show_preview=False, key_suffix="funding")
+        else:
+            st.warning("⚠️ Không có dữ liệu funding rate")
+    
+    with oi_tab:
+        st.markdown("### Open Interest hiện tại")
+        st.caption("Open Interest = Tổng số hợp đồng futures đang mở")
+        
+        oi_data = []
+        
+        for symbol in crypto_symbols:
+            for exchange in exchanges:
+                try:
+                    oi = derivs_client.oi_snapshot(exchange, symbol)
+                    if oi:
+                        oi_data.append({
+                            "Exchange": oi.exchange,
+                            "Symbol": oi.symbol,
+                            "Open Interest": f"{oi.open_interest:,.2f}",
+                            "Timestamp": pd.to_datetime(oi.ts, unit='ms').strftime('%Y-%m-%d %H:%M:%S'),
+                            "Value (USD)": f"${oi.meta.get('sumOpenInterestValue', 0):,.0f}" if 'sumOpenInterestValue' in oi.meta else "N/A"
+                        })
+                except Exception as e:
+                    st.warning(f"⚠️ Không thể lấy OI từ {exchange} cho {symbol}: {str(e)[:100]}")
+                    continue
+        
+        if oi_data:
+            oi_df = pd.DataFrame(oi_data)
+            st.dataframe(oi_df, use_container_width=True, hide_index=True)
+            
+            st.markdown("#### Giải thích")
+            st.info("""
+            - **OI tăng + giá tăng:** Bullish (tiền mới vào thị trường)
+            - **OI tăng + giá giảm:** Bearish (short mới mở)
+            - **OI giảm + giá tăng:** Short covering (đóng short)
+            - **OI giảm + giá giảm:** Long liquidation (đóng long)
+            """)
+            
+            # Export & Copy
+            col1, col2 = st.columns(2)
+            with col1:
+                show_export_options(
+                    data_csv=oi_data,
+                    data_json=oi_data,
+                    prefix="crypto_oi"
+                )
+            
+            with col2:
+                oi_text = oi_df.to_string(index=False)
+                copy_section("Crypto Open Interest", oi_text, show_preview=False, key_suffix="oi")
+        else:
+            st.warning("⚠️ Không có dữ liệu Open Interest")
 
-Để kích hoạt, vui lòng:
-1. Thêm API key vào `.streamlit/secrets.toml`
-2. Uncomment code trong file này
-""")
-
-# Uncomment khi có API
-# with st.expander("Xem ví dụ Funding Rate & OI"):
-#     st.markdown("""
-#     - BTC Funding Rate: 0.01% (Neutral)
-#     - ETH Funding Rate: 0.02% (Slightly bullish)
-#     - BTC OI: $15.2B (+2.3%)
-#     """)
+except Exception as e:
+    st.error(f"❌ Lỗi khi tải dữ liệu derivatives: {e}")
+    st.info("""
+    💡 **Gợi ý:**
+    - Kiểm tra kết nối internet
+    - Một số sàn có thể bị giới hạn rate limit
+    - Thử lại sau vài phút
+    """)
 
 st.markdown("---")
 

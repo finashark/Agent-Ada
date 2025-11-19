@@ -60,6 +60,90 @@ tabs = st.tabs([
 
 
 # ============== HELPER FUNCTION ==============
+def format_drivers_narrative(drivers: list, asset: str) -> str:
+    """Chuyển drivers list thành văn bản tường thuật"""
+    if not drivers:
+        return "Chưa xác định rõ các yếu tố chi phối chính cho tài sản này trong phiên hiện tại."
+    
+    # Phân loại drivers theo impact
+    positive = [d for d in drivers if d.startswith("(+)")]
+    neutral = [d for d in drivers if d.startswith("(0)")]
+    negative = [d for d in drivers if d.startswith("(-)")]
+    
+    # Đoạn topic
+    narrative = f"**Phân tích các yếu tố chi phối giá {asset}:**\n\n"
+    
+    # Yếu tố tích cực
+    if positive:
+        narrative += "Các yếu tố hỗ trợ giá tăng bao gồm "
+        factors = []
+        for p in positive:
+            clean = p.replace("(+)", "").split("[")[0].strip()
+            factors.append(clean.lower())
+        narrative += ", ".join(factors) + ". "
+        
+        # Giải thích logic
+        if "DXY" in positive[0] or "USD" in positive[0]:
+            narrative += "Khi USD suy yếu, các tài sản được định giá bằng USD như vàng và commodities thường tăng giá do trở nên rẻ hơn đối với người mua nắm giữ các đồng tiền khác. "
+        elif "ETF" in positive[0] or "inflow" in positive[0]:
+            narrative += "Dòng tiền lớn vào các quỹ ETF phản ánh nhu cầu mua mạnh từ nhà đầu tư tổ chức, tạo áp lực tăng giá bền vững. "
+        elif "Earnings" in positive[0]:
+            narrative += "Kết quả kinh doanh vượt kỳ vọng cho thấy sức khỏe tài chính tốt của doanh nghiệp, thúc đẩy tâm lý lạc quan và nhu cầu mua cổ phiếu. "
+    
+    # Yếu tố trung tính
+    if neutral:
+        narrative += "\n\nCác yếu tố trung tính (chưa rõ hướng tác động) "
+        factors = []
+        for n in neutral:
+            clean = n.replace("(0)", "").split("[")[0].strip()
+            factors.append(clean.lower())
+        narrative += "bao gồm " + ", ".join(factors) + ". "
+        narrative += "Những yếu tố này cần được theo dõi thêm vì có thể chuyển hướng tích cực hoặc tiêu cực tùy vào diễn biến thực tế. "
+    
+    # Yếu tố tiêu cực
+    if negative:
+        narrative += "\n\nNgược lại, áp lực giảm giá đến từ "
+        factors = []
+        for ng in negative:
+            clean = ng.replace("(-)", "").split("[")[0].strip()
+            factors.append(clean.lower())
+        narrative += ", ".join(factors) + ". "
+        
+        # Giải thích
+        if "risk appetite" in negative[0] or "risk-on" in negative[0]:
+            narrative += "Khi thị trường chuyển sang tâm lý risk-on, nhà đầu tư ưu tiên các tài sản rủi ro cao như cổ phiếu thay vì tài sản an toàn như vàng, gây áp lực bán. "
+        elif "Valuations" in negative[0] or "định giá" in negative[0]:
+            narrative += "Định giá cao (P/E ratio lớn) có thể khiến nhà đầu tư thận trọng, lo ngại về khả năng tăng trưởng tiếp theo, dẫn đến chốt lời. "
+    
+    return narrative
+
+
+def format_scenarios_narrative(scenarios: list, asset: str) -> str:
+    """Chuyển alternative scenarios thành văn bản tường thuật"""
+    if not scenarios:
+        return "Hiện chưa có kịch bản rủi ro nào được xác định rõ ràng."
+    
+    narrative = f"**Đánh giá rủi ro và kịch bản thay thế cho {asset}:**\n\n"
+    
+    narrative += "Trong môi trường thị trường hiện tại, các kịch bản rủi ro cần lưu ý bao gồm: "
+    
+    for i, scenario in enumerate(scenarios, 1):
+        clean_scenario = scenario.lstrip("- ").strip()
+        if i == 1:
+            narrative += f"({i}) {clean_scenario}; "
+        elif i == len(scenarios):
+            narrative += f"({i}) {clean_scenario}. "
+        else:
+            narrative += f"({i}) {clean_scenario}; "
+    
+    narrative += "\n\n"
+    narrative += """Nhà đầu tư nên chuẩn bị các kịch bản phòng thủ bằng cách: đặt stop-loss chặt chẽ ở các mức kỹ thuật quan trọng, 
+đa dạng hóa danh mục để giảm rủi ro tập trung, và theo dõi sát sao các tin tức kinh tế vĩ mô cũng như sự kiện địa chính trị. 
+Trong trường hợp kịch bản xấu xảy ra, việc chốt lời sớm hoặc giảm tỷ trọng vị thế có thể giúp bảo vệ vốn hiệu quả."""
+    
+    return narrative
+
+
 def render_asset_detail(asset: str, detail, key_prefix: str):
     """Render chi tiết một asset theo chuẩn A-B-C-D-E"""
     
@@ -132,12 +216,18 @@ MA50: {snapshot.get('ma50', 0):.2f}
     else:
         st.info("Chưa có cập nhật mới")
     
-    # (C) YẾU TỐ CHI PHỐI
+    # (C) YẾỤ TỐ CHI PHỐI
     st.markdown('<div class="section-header">🎯 (C) Yếu tố chi phối</div>', unsafe_allow_html=True)
     
     if detail.drivers:
-        for driver in detail.drivers:
-            st.markdown(f"- {driver}")
+        st.markdown("### Nhận định của Ada")
+        drivers_narrative = format_drivers_narrative(detail.drivers, asset)
+        st.markdown(drivers_narrative)
+        
+        # Hiển thị danh sách gốc trong expander
+        with st.expander("📊 Xem drivers chi tiết (dạng danh sách)"):
+            for driver in detail.drivers:
+                st.markdown(f"- {driver}")
         
         drivers_text = "\n".join([f"- {d}" for d in detail.drivers])
         copy_section(f"{asset} - Drivers", drivers_text, show_preview=False, key_suffix=f"{key_prefix}_drv")
@@ -175,12 +265,18 @@ Levels: R1={plan.levels.get('R1')}, R2={plan.levels.get('R2')}, S1={plan.levels.
 """
     copy_section(f"{asset} - Trade Plan", plan_text, show_preview=False, key_suffix=f"{key_prefix}_plan")
     
-    # (E) RỦI RO & KỊCH BẢN THAY THẾ
+    # (E) RỦI RO & KỊC H BẢN THAY THẾ
     st.markdown('<div class="section-header">⚠️ (E) Rủi ro & Kịch bản thay thế</div>', unsafe_allow_html=True)
     
     if detail.alternative_scenarios:
-        for scenario in detail.alternative_scenarios:
-            st.markdown(f"- {scenario}")
+        st.markdown("### Nhận định của Ada")
+        scenarios_narrative = format_scenarios_narrative(detail.alternative_scenarios, asset)
+        st.markdown(scenarios_narrative)
+        
+        # Hiển thị danh sách gốc trong expander
+        with st.expander("📊 Xem kịch bản chi tiết (dạng danh sách)"):
+            for scenario in detail.alternative_scenarios:
+                st.markdown(f"- {scenario}")
         
         scenarios_text = "\n".join([f"- {s}" for s in detail.alternative_scenarios])
         copy_section(f"{asset} - Scenarios", scenarios_text, show_preview=False, key_suffix=f"{key_prefix}_scen")
@@ -193,10 +289,10 @@ Levels: R1={plan.levels.get('R1')}, R2={plan.levels.get('R2')}, S1={plan.levels.
 
 # ============== TAB 1: US EQUITIES ==============
 with tabs[0]:
-    st.markdown("## 🇺🇸 US Equities - Top 10 cổ phiếu đáng chú ý")
+    st.markdown("## 🇺🇸 US Equities - Top 10 cổ phiếu tăng mạnh nhất")
     
-    with st.spinner("Đang phân tích S&P 500..."):
-        top10 = build_top10_equities(universe="S&P 500")
+    with st.spinner("Đang phân tích NASDAQ Large-Cap..."):
+        top10 = build_top10_equities(universe="NASDAQ Large-Cap")
     
     st.markdown(f"**Universe:** {top10.universe}")
     st.markdown(f"**Phương pháp:** {top10.method}")

@@ -27,6 +27,7 @@
 - Lịch kinh tế chuẩn hóa
 - Heatmap biến động (D1/WTD/MTD)
 - Bảng kỹ thuật nhanh (ATR, MA20, MA50)
+- **Crypto Funding Rate & Open Interest** (Binance, Bybit, OKX, Deribit)
 - Export CSV/JSON
 
 ## 🚀 Cài đặt & Chạy
@@ -128,6 +129,7 @@ Tự động làm mới dữ liệu khi phiên giao dịch đang mở:
 - **Lịch kinh tế**: Mock data (có thể tích hợp API)
 - **S&P 500 tickers**: Wikipedia
 - **Crypto**: Yahoo Finance
+- **Crypto Funding & OI**: Native exchange APIs (Binance, Bybit, OKX, Deribit) - Miễn phí
 - **Technical indicators**: Tính toán trực tiếp từ OHLC data
 
 ## 🎓 Nguyên tắc hoạt động

@@ -79,6 +79,7 @@ Agent Ada/
    - ✅ Lịch kinh tế chuẩn hóa
    - ✅ Heatmap biến động (D1/WTD/MTD)
    - ✅ Bảng kỹ thuật nhanh (ATR, MA20, MA50)
+   - ✅ **Crypto Funding Rate & Open Interest** (Binance, Bybit, OKX, Deribit)
    - ✅ Export CSV/JSON
    - ✅ Nguồn & versioning
 
@@ -121,7 +122,8 @@ Agent Ada/
 | S&P 500 Tickers | Wikipedia | ✅ Active |
 | Economic Calendar | Mock data | ⚠️ Need API key |
 | News | Mock data | ⚠️ Need API key |
-| Crypto Funding | Not implemented | ❌ Optional |
+| Crypto Funding Rate | Native APIs (Binance, Bybit, OKX, Deribit) | ✅ Active (Free) |
+| Crypto Open Interest | Native APIs (Binance, Bybit, OKX, Deribit) | ✅ Active (Free) |
 
 ---
 
@@ -212,9 +214,12 @@ streamlit run Home.py
 2. **Performance**
    - Top 10 Equities: Sample 50 tickers (nên optimize cho 500 tickers)
    - First load: 5-10 seconds (acceptable)
+   - Crypto derivatives API có thể bị rate limit nếu request quá nhiều
    
-3. **Crypto Funding**
-   - Chưa implement (cần Binance/Bybit API)
+3. **Crypto Funding & OI**
+   - ✅ **ĐÃ IMPLEMENT** - Sử dụng native exchange APIs (miễn phí)
+   - Một số exchanges có thể yêu cầu API key cho historical data
+   - Rate limits khác nhau giữa các exchanges
 
 ---
 

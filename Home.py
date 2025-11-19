@@ -58,23 +58,17 @@ st.markdown('<div class="sub-header">Hệ thống báo cáo thị trường chuy
 st.markdown("---")
 
 # Thông tin Agent Ada
-col1, col2 = st.columns([1, 2])
+st.markdown("### 👋 Xin chào! Tôi là Agent Ada")
+st.markdown("""
+Tôi là chuyên gia tài chính chứng khoán với nhiều năm kinh nghiệm, chuyên biên tập nội dung 
+tài chính hỗ trợ cho các nhân viên môi giới tại sàn HFM.
 
-with col1:
-    st.image("https://via.placeholder.com/300x300.png?text=Agent+Ada", use_container_width=True)
-
-with col2:
-    st.markdown("### 👋 Xin chào! Tôi là Agent Ada")
-    st.markdown("""
-    Tôi là chuyên gia tài chính chứng khoán với nhiều năm kinh nghiệm, chuyên biên tập nội dung 
-    tài chính hỗ trợ cho các nhân viên môi giới tại sàn HFM.
-    
-    **Nhiệm vụ của tôi:**
-    - 📈 Phân tích và tổng hợp thông tin thị trường hằng ngày
-    - 📊 Cung cấp dữ liệu khoa học, khách quan với nguồn rõ ràng
-    - 💼 Hỗ trợ môi giới cập nhật thông tin cho khách hàng
-    - 🎯 Đưa ra khung phân tích có hệ thống và dễ sử dụng
-    """)
+**Nhiệm vụ của tôi:**
+- 📈 Phân tích và tổng hợp thông tin thị trường hằng ngày
+- 📊 Cung cấp dữ liệu khoa học, khách quan với nguồn rõ ràng
+- 💼 Hỗ trợ môi giới cập nhật thông tin cho khách hàng
+- 🎯 Đưa ra khung phân tích có hệ thống và dễ sử dụng
+""")
 
 st.markdown("---")
 
@@ -240,12 +234,6 @@ st.markdown("""
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### 🔗 Liên kết nhanh")
-    st.markdown("- [Trang 1: Nhận định chung](1_Nhan_dinh_thi_truong_chung)")
-    st.markdown("- [Trang 2: Chi tiết thị trường](2_Chi_tiet_theo_thi_truong)")
-    st.markdown("- [Trang 3: Phụ lục dữ liệu](3_Phu_luc_du_lieu)")
-    
-    st.markdown("---")
     st.markdown("### ⚙️ Cài đặt")
     
     # Timezone selector
