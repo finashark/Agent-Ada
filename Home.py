@@ -363,7 +363,8 @@ with st.spinner("Đang tải tin tức từ NewsAPI, Alpha Vantage, Finnhub...")
         # Lấy tin tức thực từ API
         news_items = get_market_news(hours_back=48, max_items=10)
         
-        if news_items:
+        if news_items and len(news_items) > 0:
+            st.success(f"✅ Đã tải {len(news_items)} tin tức mới nhất từ các nguồn uy tín")
             st.success(f"✅ Đã tải {len(news_items)} tin tức mới nhất từ các nguồn uy tín")
             
             # Hiển thị tin tức

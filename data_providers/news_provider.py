@@ -37,46 +37,69 @@ class NewsProvider:
         Returns:
             List tin tức đã chuẩn hóa
         """
+        errors = []
+        
         # Try NewsAPI first
         if self.newsapi_key:
             try:
+                logger.info("Attempting to fetch from NewsAPI...")
                 news = self._fetch_newsapi(hours_back, max_items)
-                if news:
+                if news and len(news) > 0:
                     logger.info(f"Fetched {len(news)} items from NewsAPI")
                     return news
+                else:
+                    logger.warning("NewsAPI returned empty results")
             except Exception as e:
-                logger.warning(f"NewsAPI failed: {e}")
+                error_msg = f"NewsAPI failed: {str(e)}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+        else:
+            logger.warning("NewsAPI key not available")
         
         # Fallback to Alpha Vantage
         if self.alphavantage_key:
             try:
+                logger.info("Attempting to fetch from Alpha Vantage...")
                 news = self._fetch_alphavantage(max_items)
-                if news:
+                if news and len(news) > 0:
                     logger.info(f"Fetched {len(news)} items from Alpha Vantage")
                     return news
+                else:
+                    logger.warning("Alpha Vantage returned empty results")
             except Exception as e:
-                logger.warning(f"Alpha Vantage failed: {e}")
+                error_msg = f"Alpha Vantage failed: {str(e)}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+        else:
+            logger.warning("Alpha Vantage key not available")
         
         # Fallback to Finnhub
         if self.finnhub_key:
             try:
+                logger.info("Attempting to fetch from Finnhub...")
                 news = self._fetch_finnhub(hours_back, max_items)
-                if news:
+                if news and len(news) > 0:
                     logger.info(f"Fetched {len(news)} items from Finnhub")
                     return news
+                else:
+                    logger.warning("Finnhub returned empty results")
             except Exception as e:
-                logger.warning(f"Finnhub failed: {e}")
+                error_msg = f"Finnhub failed: {str(e)}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+        else:
+            logger.warning("Finnhub key not available")
         
-        # All failed, return empty
-        logger.error("All news providers failed")
+        # All failed
+        logger.error(f"All news providers failed. Errors: {errors}")
         return []
     
     def _fetch_newsapi(self, hours_back: int, max_items: int) -> List[Dict]:
         """Fetch từ NewsAPI.org"""
-        from_date = (datetime.now(timezone.utc) - timedelta(hours=hours_back)).isoformat()
+        from_date = (datetime.now(timezone.utc) - timedelta(hours=hours_back)).strftime("%Y-%m-%d")
         
-        # Keywords cho tài chính
-        keywords = "stock market OR S&P 500 OR nasdaq OR bitcoin OR gold OR oil OR forex OR fed OR federal reserve"
+        # Keywords tập trung vào US markets và major assets
+        keywords = '("S&P 500" OR "Nasdaq" OR "Dow Jones" OR "Federal Reserve" OR "Fed rate" OR FOMC OR Bitcoin OR Ethereum OR "gold price" OR "oil price" OR "USD index")'
         
         url = "https://newsapi.org/v2/everything"
         params = {
@@ -84,30 +107,44 @@ class NewsProvider:
             "from": from_date,
             "sortBy": "publishedAt",
             "language": "en",
-            "pageSize": max_items,
-            "apiKey": self.newsapi_key
+            "pageSize": max_items * 2,  # Lấy nhiều hơn để filter
+            "apiKey": self.newsapi_key,
+            "domains": "bloomberg.com,reuters.com,cnbc.com,wsj.com,ft.com,marketwatch.com,investing.com"  # Chỉ nguồn uy tín
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        logger.info(f"Calling NewsAPI with params: q={params['q'][:50]}...")
+        response = requests.get(url, params=params, timeout=15)
+        logger.info(f"NewsAPI response status: {response.status_code}")
+        
         response.raise_for_status()
         data = response.json()
         
-        if data["status"] != "ok":
-            raise Exception(f"NewsAPI error: {data.get('message', 'Unknown')}")
+        logger.info(f"NewsAPI data: status={data.get('status')}, totalResults={data.get('totalResults', 0)}")
         
-        # Chuẩn hóa format
+        if data["status"] != "ok":
+            raise Exception(f"NewsAPI error: {data.get('message', 'Unknown')} - Code: {data.get('code', 'N/A')}")
+        
+        # Chuẩn hóa format và filter quality
         news_items = []
         for article in data.get("articles", []):
+            # Skip removed articles
+            if article.get("title") == "[Removed]":
+                continue
+            
             news_items.append({
                 "time": article["publishedAt"],
                 "title": article["title"],
                 "source": article["source"]["name"],
                 "url": article.get("url", ""),
-                "asset": self._extract_asset(article["title"]),
+                "asset": self._extract_asset(article["title"] + " " + article.get("description", "")),
                 "impact": self._estimate_impact(article["title"]),
                 "sentiment": self._analyze_sentiment(article["title"])
             })
+            
+            if len(news_items) >= max_items:
+                break
         
+        logger.info(f"Processed {len(news_items)} articles from NewsAPI")
         return news_items
     
     def _fetch_alphavantage(self, max_items: int) -> List[Dict]:
