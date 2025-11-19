@@ -87,6 +87,12 @@ st.markdown('<div class="sub-header">Hệ thống báo cáo thị trường chuy
 
 st.markdown("---")
 
+# Hiển thị thông tin phiên giao dịch và cache strategy
+from components.session_cache import render_session_info
+render_session_info()
+
+st.markdown("---")
+
 # Thông tin Agent Ada
 st.markdown("### 👋 Xin chào! Tôi là Agent Ada")
 st.markdown("""

@@ -6,6 +6,13 @@ import streamlit as st
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
 import logging
+from components.session_cache import (
+    get_news_cache_key,
+    get_cached_data,
+    set_cached_data,
+    get_cache_timestamp,
+    should_refresh_cache
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,7 +45,8 @@ class NewsProvider:
     
     def get_news(self, hours_back: int = 48, max_items: int = 10) -> List[Dict]:
         """
-        Lấy tin tức từ các provider với fallback
+        Lấy tin tức từ các provider với session-based cache
+        Chỉ fetch mới khi sang phiên giao dịch mới (4 lần/ngày tối đa)
         
         Args:
             hours_back: Số giờ lấy tin ngược lại
@@ -47,6 +55,18 @@ class NewsProvider:
         Returns:
             List tin tức đã chuẩn hóa
         """
+        # Kiểm tra cache
+        cache_key = get_news_cache_key()
+        cache_timestamp = get_cache_timestamp(cache_key)
+        
+        if not should_refresh_cache(cache_timestamp):
+            cached_news = get_cached_data(cache_key)
+            if cached_news is not None:
+                logger.info(f"📦 Using cached news from {cache_timestamp}")
+                return cached_news
+        
+        # Fetch news mới
+        logger.info(f"🔄 Fetching fresh news (new session)")
         errors = []
         
         # Try NewsAPI first
@@ -56,6 +76,9 @@ class NewsProvider:
                 news = self._fetch_newsapi(hours_back, max_items)
                 if news and len(news) > 0:
                     logger.info(f"Fetched {len(news)} items from NewsAPI")
+                    # Cache kết quả
+                    set_cached_data(cache_key, news)
+                    logger.info(f"💾 Cached news for session")
                     return news
                 else:
                     logger.warning("NewsAPI returned empty results")
@@ -70,9 +93,12 @@ class NewsProvider:
         if self.alphavantage_key:
             try:
                 logger.info("Attempting to fetch from Alpha Vantage...")
-                news = self._fetch_alphavantage(max_items)
+                news = self._fetch_alphavantage(hours_back, max_items)
                 if news and len(news) > 0:
                     logger.info(f"Fetched {len(news)} items from Alpha Vantage")
+                    # Cache kết quả
+                    set_cached_data(cache_key, news)
+                    logger.info(f"💾 Cached news for session")
                     return news
                 else:
                     logger.warning("Alpha Vantage returned empty results")
@@ -90,6 +116,9 @@ class NewsProvider:
                 news = self._fetch_finnhub(hours_back, max_items)
                 if news and len(news) > 0:
                     logger.info(f"Fetched {len(news)} items from Finnhub")
+                    # Cache kết quả
+                    set_cached_data(cache_key, news)
+                    logger.info(f"💾 Cached news for session")
                     return news
                 else:
                     logger.warning("Finnhub returned empty results")

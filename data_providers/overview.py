@@ -11,6 +11,13 @@ import logging
 from typing import List, Dict, Tuple
 from schemas import MarketOverview, CalendarItem
 from components.session_badge import session_status, session_ttl
+from components.session_cache import (
+    get_market_data_cache_key,
+    get_cached_data,
+    set_cached_data,
+    get_cache_timestamp,
+    should_refresh_cache
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -35,10 +42,10 @@ TICKER_DISPLAY_NAMES = {
 }
 
 
-@st.cache_data(ttl=600, show_spinner=False)
 def fetch_prices(tickers: List[str], period: str = "1mo", interval: str = "1d") -> pd.DataFrame:
     """
-    Fetch giá từ yfinance với cache
+    Fetch giá từ yfinance với session-based cache
+    Chỉ fetch mới khi sang phiên giao dịch mới (4 lần/ngày tối đa)
     
     Args:
         tickers: Danh sách mã tài sản
@@ -48,6 +55,20 @@ def fetch_prices(tickers: List[str], period: str = "1mo", interval: str = "1d") 
     Returns:
         DataFrame với giá Close
     """
+    # Tạo cache key cho phiên hiện tại
+    cache_key = get_market_data_cache_key()
+    cache_timestamp = get_cache_timestamp(cache_key)
+    
+    # Kiểm tra xem có cần refresh không
+    if not should_refresh_cache(cache_timestamp):
+        # Lấy từ cache
+        cached_data = get_cached_data(cache_key)
+        if cached_data is not None:
+            logger.info(f"📦 Using cached market data from {cache_timestamp}")
+            return cached_data
+    
+    # Fetch data mới
+    logger.info(f"🔄 Fetching fresh market data (new session)")
     try:
         logger.info(f"Fetching prices for {len(tickers)} tickers: period={period}, interval={interval}")
         
@@ -65,6 +86,11 @@ def fetch_prices(tickers: List[str], period: str = "1mo", interval: str = "1d") 
             data = data["Close"]
         
         logger.info(f"Successfully fetched {len(data)} rows of data")
+        
+        # Lưu vào cache
+        set_cached_data(cache_key, data)
+        logger.info(f"💾 Cached market data for session")
+        
         return data
         
     except Exception as e:
