@@ -362,7 +362,7 @@ Viết chuyên nghiệp, súc tích, có số liệu cụ thể."""
     # Levels
     if plan.levels:
         levels_df = pd.DataFrame([plan.levels])
-        st.dataframe(levels_df, use_container_width=True, hide_index=True)
+        st.dataframe(levels_df, width="stretch", hide_index=True)
     
     plan_text = f"""
 Bias: {plan.bias}
@@ -492,7 +492,7 @@ with tabs[1]:
         
         if fx_overview:
             fx_df = pd.DataFrame(fx_overview)
-            st.dataframe(fx_df, use_container_width=True, hide_index=True)
+            st.dataframe(fx_df, width="stretch", hide_index=True)
 
 
 # ============== TAB 3: CRYPTO ==============
@@ -525,7 +525,7 @@ with tabs[2]:
         
         if crypto_overview:
             crypto_df = pd.DataFrame(crypto_overview)
-            st.dataframe(crypto_df, use_container_width=True, hide_index=True)
+            st.dataframe(crypto_df, width="stretch", hide_index=True)
 
 
 # ============== TAB 4: DẦU ==============
@@ -601,7 +601,7 @@ with tabs[4]:
         
         if indices_overview:
             indices_df = pd.DataFrame(indices_overview)
-            st.dataframe(indices_df, use_container_width=True, hide_index=True)
+            st.dataframe(indices_df, width="stretch", hide_index=True)
 
 
 # ============== TAB 6: ETF FLOWS (Bold.Report) ==============
@@ -651,9 +651,9 @@ with tabs[5]:
                     display_cols = ["name", "ticker", "aum", "flow_1d", "flow_1w", "flow_1m"]
                     available_cols = [c for c in display_cols if c in flows_df.columns]
                     if available_cols:
-                        st.dataframe(flows_df[available_cols], use_container_width=True, hide_index=True)
+                        st.dataframe(flows_df[available_cols], width="stretch", hide_index=True)
                     else:
-                        st.dataframe(flows_df.head(10), use_container_width=True, hide_index=True)
+                        st.dataframe(flows_df.head(10), width="stretch", hide_index=True)
             else:
                 st.info("Không có dữ liệu Gold ETF flows")
         else:
@@ -694,9 +694,9 @@ with tabs[5]:
                     display_cols = ["name", "ticker", "aum", "flow_1d", "flow_1w", "flow_1m"]
                     available_cols = [c for c in display_cols if c in flows_df.columns]
                     if available_cols:
-                        st.dataframe(flows_df[available_cols], use_container_width=True, hide_index=True)
+                        st.dataframe(flows_df[available_cols], width="stretch", hide_index=True)
                     else:
-                        st.dataframe(flows_df.head(10), use_container_width=True, hide_index=True)
+                        st.dataframe(flows_df.head(10), width="stretch", hide_index=True)
             else:
                 st.info("Không có dữ liệu Bitcoin ETF flows")
         else:

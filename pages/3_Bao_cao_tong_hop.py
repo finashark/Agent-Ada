@@ -741,7 +741,7 @@ st.markdown("### 📥 Tải xuống báo cáo")
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("🖨️ In báo cáo", use_container_width=True):
+    if st.button("🖨️ In báo cáo", key="print_report"):
         st.info("Sử dụng Ctrl+P (Windows) hoặc Cmd+P (Mac) để in báo cáo")
 
 with col2:

@@ -102,7 +102,7 @@ st.markdown("## 📊 Bảng chỉ số & tài sản chính")
 if not cross_asset_df.empty:
     st.dataframe(
         cross_asset_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True
     )
     

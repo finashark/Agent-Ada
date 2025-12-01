@@ -101,7 +101,7 @@ calendar_data = [
 ]
 
 calendar_df = pd.DataFrame(calendar_data)
-st.dataframe(calendar_df, use_container_width=True, hide_index=True)
+st.dataframe(calendar_df, width="stretch", hide_index=True)
 
 st.caption(f"⏰ Múi giờ hiển thị: {selected_tz}")
 
@@ -178,7 +178,7 @@ with st.spinner("Đang tạo heatmap..."):
             'MTD (%)': '{:.2f}'
         })
         
-        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        st.dataframe(styled_df, width="stretch", hide_index=True)
         
         st.caption("📌 Nguồn: yfinance | Lookback: D1=1 day, WTD=5 days, MTD=22 days")
         
@@ -239,7 +239,7 @@ with st.spinner("Đang tính toán chỉ báo kỹ thuật..."):
     
     if technical_data:
         technical_df = pd.DataFrame(technical_data)
-        st.dataframe(technical_df, use_container_width=True, hide_index=True)
+        st.dataframe(technical_df, width="stretch", hide_index=True)
         
         st.caption("📌 🟢 = Above MA20 & MA50 | 🔴 = Below MA20 & MA50 | 🟡 = Mixed")
         
@@ -302,7 +302,7 @@ try:
         
         if funding_data:
             funding_df = pd.DataFrame(funding_data)
-            st.dataframe(funding_df, use_container_width=True, hide_index=True)
+            st.dataframe(funding_df, width="stretch", hide_index=True)
             
             # Analysis
             st.markdown("#### Phân tích")
@@ -356,7 +356,7 @@ try:
         
         if oi_data:
             oi_df = pd.DataFrame(oi_data)
-            st.dataframe(oi_df, use_container_width=True, hide_index=True)
+            st.dataframe(oi_df, width="stretch", hide_index=True)
             
             st.markdown("#### Giải thích")
             st.info("""
