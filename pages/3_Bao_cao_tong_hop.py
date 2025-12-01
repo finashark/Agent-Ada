@@ -432,9 +432,16 @@ page1_html += f"""
 # Add risk sentiment metrics
 risk_sentiment = overview_data.get('risk_sentiment', {})
 for key, label in [('vix', 'VIX (Biến động)'), ('dxy', 'DXY (USD Index)'), ('us10y', 'US 10Y Yield')]:
-    metric = risk_sentiment.get(key, {})
-    value = metric.get('value', 0)
-    change = metric.get('change_pct', 0)
+    value = risk_sentiment.get(key, 0)
+    
+    # Get change from market_snapshot if available
+    snapshot = overview_data.get('market_snapshot', {})
+    ticker_map = {'vix': '^VIX', 'dxy': 'DXY', 'us10y': '^TNX'}
+    ticker = ticker_map.get(key)
+    change = 0
+    if ticker and ticker in snapshot:
+        change = snapshot[ticker].get('d1', 0)
+    
     change_class = 'metric-positive' if change > 0 else 'metric-negative' if change < 0 else ''
     
     page1_html += f"""
@@ -445,7 +452,7 @@ for key, label in [('vix', 'VIX (Biến động)'), ('dxy', 'DXY (USD Index)'), 
                     <span class="metric-value">{value:.2f}{'%' if key == 'us10y' else ''}</span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">Thay đổi</span>
+                    <span class="metric-label">Thay đổi 1D</span>
                     <span class="metric-value {change_class}">{change:+.2f}%</span>
                 </div>
             </div>
