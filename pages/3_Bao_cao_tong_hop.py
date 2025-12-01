@@ -8,7 +8,7 @@ import pytz
 import sys
 sys.path.insert(0, '..')
 
-from data_providers.overview import get_overview_data
+from data_providers.overview import build_overview
 from data_providers.news_provider import NewsProvider
 from data_providers.market_details import build_detail, FX_MAJORS, CRYPTO_MAJORS
 from data_providers.ai_analyst import get_ada_analyst
@@ -310,7 +310,8 @@ st.markdown("---")
 # Load data
 with st.spinner("Đang tải dữ liệu báo cáo..."):
     # Overview data
-    overview_data = get_overview_data()
+    overview_obj = build_overview()
+    overview_data = overview_obj.model_dump()  # Convert Pydantic model to dict
     
     # News
     news_provider = NewsProvider()
