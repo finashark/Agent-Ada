@@ -489,7 +489,7 @@ st.markdown('<div class="page-break"></div>', unsafe_allow_html=True)
 
 # ========== PAGE 2: LỊCH KINH TẾ & TIN TỨC ==========
 
-# Get economic calendar (mock data for demo)
+# Get economic calendar from overview data
 calendar_items = overview_data.get('economic_calendar', [])[:8]
 
 page2_html = f"""
@@ -583,10 +583,19 @@ page2_html += """
         
         <div class="analysis-box">
             <p class="analysis-text">
-                • Theo dõi các số liệu kinh tế quan trọng có thể gây biến động mạnh<br>
-                • Chú ý đến các phát biểu của quan chức Fed và ECB<br>
-                • Cập nhật tin tức địa chính trị có thể ảnh hưởng đến tâm lý thị trường<br>
-                • Kiểm tra volume giao dịch và thanh khoản trước khi vào lệnh
+"""
+
+# Add highlights from overview data instead of hardcoded text
+highlights = overview_data.get('highlights', [])
+if highlights:
+    for highlight in highlights[:4]:  # Top 4 highlights for page 2
+        page2_html += f"                • {highlight}<br>\n"
+else:
+    page2_html += """                • Theo dõi các số liệu kinh tế quan trọng có thể gây biến động mạnh<br>
+                • Chú ý đến diễn biến địa chính trị ảnh hưởng tâm lý thị trường<br>
+"""
+
+page2_html += """
             </p>
         </div>
     </div>
