@@ -335,8 +335,9 @@ with st.spinner("Đang tải dữ liệu báo cáo..."):
     # Debug: Check news items
     if not news_items or (isinstance(news_items, list) and len(news_items) == 0):
         st.warning("⚠️ Không lấy được tin tức mới. Đang sử dụng highlights từ market data.")
-        # Fallback to highlights if no news
         news_items = []
+    else:
+        st.success(f"✅ Đã tải {len(news_items)} tin tức")
     
     # Market details
     gold_detail = build_detail("GC=F")
@@ -413,26 +414,34 @@ page1_html = f"""
 
 # Add news items
 if news_items and isinstance(news_items, list) and len(news_items) > 0:
+    added_count = 0
     for idx, item in enumerate(news_items[:6]):
-        if item and isinstance(item, dict):
-            title = html.escape(item.get('title', 'N/A'))[:100]  # Escape HTML characters
-            source = html.escape(item.get('source', 'Unknown'))
-            time = item.get('published_at', '')[:10] if item.get('published_at') else ''
+        if item and isinstance(item, dict) and item.get('title'):
+            title = html.escape(str(item.get('title', '')))[:100]  # Escape HTML characters
+            source = html.escape(str(item.get('source', 'Unknown')))
+            time = str(item.get('published_at', ''))[:10] if item.get('published_at') else ''
             
             page1_html += f"""
             <div class="news-item">
-                <div class="news-title">{idx+1}. {title}</div>
+                <div class="news-title">{added_count+1}. {title}</div>
                 <div class="news-meta">Nguồn: {source} | {time}</div>
             </div>
 """
-else:
+            added_count += 1
+    
+    # If no valid items were added, fallback to highlights
+    if added_count == 0:
+        news_items = []  # Trigger fallback below
+
+if not news_items or len(news_items) == 0:
     # Fallback to market highlights if no news available
     highlights = overview_data.get('highlights', [])
     if highlights:
         for idx, highlight in enumerate(highlights[:6]):
-            page1_html += f"""
+            if highlight:  # Skip empty highlights
+                page1_html += f"""
             <div class="news-item">
-                <div class="news-title">{idx+1}. {html.escape(highlight)}</div>
+                <div class="news-title">{idx+1}. {html.escape(str(highlight))}</div>
                 <div class="news-meta">Nguồn: Market Data Analysis</div>
             </div>
 """
