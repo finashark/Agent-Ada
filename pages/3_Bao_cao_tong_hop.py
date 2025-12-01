@@ -4,6 +4,7 @@ Template màu HFM với disclaimer đầy đủ
 """
 import streamlit as st
 import pandas as pd
+import html
 from datetime import datetime
 import pytz
 import sys
@@ -392,13 +393,13 @@ page1_html = f"""
 if news_items and isinstance(news_items, list):
     for idx, item in enumerate(news_items[:6]):
         if item and isinstance(item, dict):
-            title = item.get('title', 'N/A')
-            source = item.get('source', 'Unknown')
+            title = html.escape(item.get('title', 'N/A'))[:100]  # Escape HTML characters
+            source = html.escape(item.get('source', 'Unknown'))
             time = item.get('published_at', '')[:10] if item.get('published_at') else ''
             
             page1_html += f"""
             <div class="news-item">
-                <div class="news-title">{idx+1}. {title[:100]}</div>
+                <div class="news-title">{idx+1}. {title}</div>
                 <div class="news-meta">Nguồn: {source} | {time}</div>
             </div>
 """
@@ -418,7 +419,7 @@ page1_html += f"""
         <div class="section-header">💡 NHẬN ĐỊNH ĐẦU NGÀY</div>
         
         <div class="analysis-box">
-            <p class="analysis-text">{opening_analysis}</p>
+            <p class="analysis-text">{html.escape(opening_analysis) if opening_analysis else 'Đang cập nhật phân tích...'}</p>
         </div>
         
         <div class="spacer"></div>
@@ -589,7 +590,7 @@ page2_html += """
 highlights = overview_data.get('highlights', [])
 if highlights:
     for highlight in highlights[:4]:  # Top 4 highlights for page 2
-        page2_html += f"                • {highlight}<br>\n"
+        page2_html += f"                • {html.escape(highlight)}<br>\n"
 else:
     page2_html += """                • Theo dõi các số liệu kinh tế quan trọng có thể gây biến động mạnh<br>
                 • Chú ý đến diễn biến địa chính trị ảnh hưởng tâm lý thị trường<br>
