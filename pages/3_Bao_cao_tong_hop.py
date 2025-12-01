@@ -3,6 +3,7 @@ Trang 3: Báo cáo tổng hợp - 3 trang A4 canvas format
 Template màu HFM với disclaimer đầy đủ
 """
 import streamlit as st
+import pandas as pd
 from datetime import datetime
 import pytz
 import sys
@@ -325,8 +326,12 @@ with st.spinner("Đang tải dữ liệu báo cáo..."):
 
 # Generate AI opening analysis
 opening_analysis = ""
-if ada_analyst.model and news_items:
+if ada_analyst.model and news_items is not None and len(news_items) > 0:
     try:
+        # Convert DataFrame to list if needed
+        if isinstance(news_items, pd.DataFrame):
+            news_items = news_items.to_dict('records')
+        
         news_summary = "\n".join([f"- {item.get('title', 'N/A')}" for item in news_items[:5] if item])
         
         prompt = f"""Bạn là Ada, chuyên gia phân tích thị trường tài chính.
