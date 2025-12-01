@@ -328,8 +328,12 @@ with st.spinner("Đang tải dữ liệu báo cáo..."):
     news_provider = NewsProvider()
     news_items = news_provider.get_news(hours_back=24, max_items=8)
     
+    # Convert DataFrame to list if needed
+    if isinstance(news_items, pd.DataFrame):
+        news_items = news_items.to_dict('records') if not news_items.empty else []
+    
     # Debug: Check news items
-    if not news_items or len(news_items) == 0:
+    if not news_items or (isinstance(news_items, list) and len(news_items) == 0):
         st.warning("⚠️ Không lấy được tin tức mới. Đang sử dụng highlights từ market data.")
         # Fallback to highlights if no news
         news_items = []
@@ -344,9 +348,7 @@ with st.spinner("Đang tải dữ liệu báo cáo..."):
 opening_analysis = ""
 if ada_analyst.model:
     try:
-        # Convert DataFrame to list if needed
-        if isinstance(news_items, pd.DataFrame):
-            news_items = news_items.to_dict('records')
+        # news_items already converted to list above, no need to convert again
         
         # Use news if available, otherwise use highlights
         if news_items and len(news_items) > 0:
