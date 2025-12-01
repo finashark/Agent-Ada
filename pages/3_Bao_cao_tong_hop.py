@@ -47,16 +47,16 @@ st.markdown("""
         font-family: 'Segoe UI', Arial, sans-serif;
     }
     
-    /* HFM Brand Colors */
+    /* HFM Brand Colors - Black & Red */
     .hfm-header {
-        background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+        background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
         color: white;
         padding: 25px 30px;
         position: relative;
     }
     
     .hfm-accent {
-        background: linear-gradient(90deg, #ff6b35 0%, #ff8c42 100%);
+        background: linear-gradient(90deg, #D32F2F 0%, #E53935 100%);
         height: 8px;
         width: 100%;
     }
@@ -104,12 +104,12 @@ st.markdown("""
     
     .section-header {
         background: white;
-        color: #1a237e;
+        color: #000000;
         font-size: 20px;
         font-weight: 700;
         padding: 12px 15px;
         margin: 0 0 15px 0;
-        border-left: 5px solid #ff6b35;
+        border-left: 5px solid #D32F2F;
         box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
     
@@ -118,13 +118,13 @@ st.markdown("""
         padding: 12px 15px;
         margin: 0 0 10px 0;
         border-radius: 6px;
-        border-left: 3px solid #0d47a1;
+        border-left: 3px solid #D32F2F;
     }
     
     .news-title {
         font-size: 14px;
         font-weight: 600;
-        color: #1a237e;
+        color: #000000;
         margin: 0 0 5px 0;
     }
     
@@ -134,10 +134,10 @@ st.markdown("""
     }
     
     .analysis-box {
-        background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%);
+        background: linear-gradient(135deg, #ffebee 0%, #f5f5f5 100%);
         padding: 15px;
         border-radius: 8px;
-        border: 2px solid #0d47a1;
+        border: 2px solid #D32F2F;
         margin: 10px 0;
     }
     
@@ -166,10 +166,10 @@ st.markdown("""
     .market-card-header {
         font-size: 15px;
         font-weight: 700;
-        color: #1a237e;
+        color: #000000;
         margin: 0 0 10px 0;
         padding-bottom: 8px;
-        border-bottom: 2px solid #ff6b35;
+        border-bottom: 2px solid #D32F2F;
     }
     
     .metric-row {
@@ -188,7 +188,7 @@ st.markdown("""
     .metric-value {
         font-size: 13px;
         font-weight: 700;
-        color: #1a237e;
+        color: #000000;
     }
     
     .metric-positive {
@@ -201,7 +201,7 @@ st.markdown("""
     
     .calendar-item {
         background: white;
-        border-left: 4px solid #ff6b35;
+        border-left: 4px solid #D32F2F;
         padding: 10px 12px;
         margin: 0 0 8px 0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -210,7 +210,7 @@ st.markdown("""
     .calendar-time {
         font-size: 12px;
         font-weight: 700;
-        color: #ff6b35;
+        color: #D32F2F;
         margin: 0 0 4px 0;
     }
     
@@ -256,7 +256,7 @@ st.markdown("""
     .disclaimer-title {
         font-size: 13px;
         font-weight: 700;
-        color: #ff6b35;
+        color: #D32F2F;
         margin: 0 0 10px 0;
         text-transform: uppercase;
     }

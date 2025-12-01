@@ -74,9 +74,10 @@ class AdaAIAnalyst:
             context += "\n"
         
         # News
-        if news:
+        if news is not None and len(news) > 0:
             context += "Tin tức mới nhất:\n"
-            for i, item in enumerate(news[:10], 1):  # Top 10 news
+            news_list = news if isinstance(news, list) else news.to_dict('records')
+            for i, item in enumerate(news_list[:10], 1):  # Top 10 news
                 context += f"{i}. {item.get('title', 'N/A')}\n"
                 if item.get('description'):
                     context += f"   {item['description']}\n"
@@ -175,9 +176,10 @@ Viết bằng tiếng Việt chuyên nghiệp, giọng điệu tự tin nhưng t
         try:
             # Build news context
             news_context = ""
-            if news:
+            if news is not None and len(news) > 0:
                 news_context = "Tin tức liên quan:\n"
-                for i, item in enumerate(news[:5], 1):
+                news_list = news if isinstance(news, list) else news.to_dict('records')
+                for i, item in enumerate(news_list[:5], 1):
                     news_context += f"{i}. {item.get('title', 'N/A')} - {item.get('sentiment', 'Neutral')}\n"
             
             # Build drivers context

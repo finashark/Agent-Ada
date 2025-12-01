@@ -134,18 +134,22 @@ st.markdown("## 📅 Lịch kinh tế hôm nay")
 if overview.economic_calendar:
     calendar_data = []
     for item in overview.economic_calendar:
+        # Use None instead of "N/A" string for numeric columns
+        consensus_val = item.consensus if item.consensus else None
+        prior_val = item.prior if item.prior else None
+        
         calendar_data.append({
             "Giờ": item.time_local,
             "Khu vực": item.region,
             "Sự kiện": item.event,
-            "Ước tính": item.consensus if item.consensus else "N/A",
-            "Trước đó": item.prior if item.prior else "N/A",
+            "Ước tính": consensus_val,
+            "Trước đó": prior_val,
             "Ảnh hưởng": item.impact if item.impact else "N/A",
             "Link": item.source_url if item.source_url else ""
         })
     
     calendar_df = pd.DataFrame(calendar_data)
-    st.dataframe(calendar_df, use_container_width=True, hide_index=True)
+    st.dataframe(calendar_df, width="stretch", hide_index=True)
     
     # Export
     show_export_options(

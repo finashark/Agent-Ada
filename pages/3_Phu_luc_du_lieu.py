@@ -169,7 +169,7 @@ with st.spinner("Đang tạo heatmap..."):
             except:
                 return ''
         
-        styled_df = heatmap_df.style.applymap(
+        styled_df = heatmap_df.style.map(
             color_negative_red, 
             subset=['D1 (%)', 'WTD (%)', 'MTD (%)']
         ).format({
