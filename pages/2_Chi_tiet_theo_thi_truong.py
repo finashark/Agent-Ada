@@ -18,7 +18,7 @@ from data_providers.market_details import (
 from data_providers.ai_analyst import get_ada_analyst
 from data_providers.news_provider import NewsProvider
 from data_providers.bold_report import BoldReportProvider
-from components.pdf_generator import AdaPDFGenerator
+from components.pdf_generator import ReportPDFGenerator
 
 # Cấu hình trang
 st.set_page_config(
@@ -56,7 +56,7 @@ with col_header2:
     if st.button("📄 Xuất PDF", key="export_pdf_page2"):
         with st.spinner("Đang tạo PDF..."):
             try:
-                pdf_gen = AdaPDFGenerator()
+                pdf_gen = ReportPDFGenerator()
                 
                 # Collect data for PDF
                 gold_detail = build_detail("GC=F")
