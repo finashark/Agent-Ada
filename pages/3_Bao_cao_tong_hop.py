@@ -27,7 +27,16 @@ tz = pytz.timezone("Asia/Ho_Chi_Minh")
 now = datetime.now(tz)
 report_date = now.strftime("%d/%m/%Y")
 report_time = now.strftime("%H:%M")
-session_info = get_current_session()
+
+# Get session info
+session_name, session_start = get_current_session()
+session_name_vi = {
+    "Asia": "Châu Á",
+    "Europe": "Châu Âu",
+    "US": "Mỹ",
+    "After-Hours": "Sau giờ",
+    "Off-Market": "Ngoài giờ"
+}.get(session_name, session_name)
 
 # CSS for A4 pages with HFM branding
 st.markdown("""
@@ -363,7 +372,7 @@ page1_html = f"""
     <div class="hfm-header">
         <div class="report-meta">
             <p class="report-date">{report_date}</p>
-            <p class="report-session">Phiên: {session_info['name_vi']}</p>
+            <p class="report-session">Phiên: {session_name_vi}</p>
             <p class="report-session">{report_time} ICT</p>
         </div>
         <h1 class="report-title">BÁO CÁO THỊ TRƯỜNG</h1>
@@ -482,7 +491,7 @@ page2_html = f"""
     <div class="hfm-header">
         <div class="report-meta">
             <p class="report-date">{report_date}</p>
-            <p class="report-session">Phiên: {session_info['name_vi']}</p>
+            <p class="report-session">Phiên: {session_name_vi}</p>
         </div>
         <h1 class="report-title">LỊCH KINH TẾ</h1>
         <p class="report-subtitle">Các sự kiện cần chú ý trong ngày</p>
@@ -606,7 +615,7 @@ page3_html = f"""
     <div class="hfm-header">
         <div class="report-meta">
             <p class="report-date">{report_date}</p>
-            <p class="report-session">Phiên: {session_info['name_vi']}</p>
+            <p class="report-session">Phiên: {session_name_vi}</p>
         </div>
         <h1 class="report-title">PHÂN TÍCH THỊ TRƯỜNG</h1>
         <p class="report-subtitle">Chi tiết các tài sản chính</p>
@@ -751,7 +760,7 @@ with col1:
         st.info("Sử dụng Ctrl+P (Windows) hoặc Cmd+P (Mac) để in báo cáo")
 
 with col2:
-    st.markdown(f"**Báo cáo ngày:** {report_date} | **Phiên:** {session_info['name_vi']}")
+    st.markdown(f"**Báo cáo ngày:** {report_date} | **Phiên:** {session_name_vi}")
 
 # Sidebar info
 with st.sidebar:
