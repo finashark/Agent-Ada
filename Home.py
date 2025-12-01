@@ -127,6 +127,38 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
 
+# NEW: Bold.Report Data & PDF Export
+st.markdown("---")
+st.markdown("## 🆕 Tính năng mới")
+
+col_new1, col_new2 = st.columns(2)
+
+with col_new1:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="feature-title">📄 Xuất Báo Cáo PDF</div>
+        <ul>
+            <li>Báo cáo thị trường chuyên nghiệp</li>
+            <li>Định dạng sẵn cho môi giới</li>
+            <li>Bao gồm phân tích kỹ thuật</li>
+            <li>Xuất nhanh 1 click</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_new2:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="feature-title">💰 Bold.Report Data</div>
+        <ul>
+            <li>Dòng tiền ETF Vàng (GLD, IAU,...)</li>
+            <li>Dòng tiền ETF Bitcoin</li>
+            <li>So sánh Gold vs BTC</li>
+            <li>Nguồn: bold.report/data-api</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
 st.markdown("---")
 
 # Nguyên tắc hoạt động
@@ -222,7 +254,7 @@ st.markdown("## ℹ️ Thông tin hệ thống")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Phiên bản", "v1.2.0-Fast")
+    st.metric("Phiên bản", "v1.3.0")
 
 with col2:
     tz = pytz.timezone("Asia/Ho_Chi_Minh")
@@ -230,7 +262,7 @@ with col2:
     st.metric("Thời gian hiện tại (VN)", now_time.strftime("%H:%M:%S"))
 
 with col3:
-    st.metric("Tối ưu", "⚡ Lazy Load")
+    st.metric("Tối ưu", "⚡ Lazy Load + PDF")
 
 st.markdown("---")
 

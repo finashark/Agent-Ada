@@ -1,6 +1,6 @@
 """
 Trang 2: Thông tin chi tiết theo thị trường
-Tabs: US Equities, Vàng, FX Majors, Crypto, Dầu, Chỉ số
+Tabs: US Equities, Vàng, FX Majors, Crypto, Dầu, Chỉ số, ETF Flows
 """
 import streamlit as st
 from datetime import datetime, timezone
@@ -17,6 +17,8 @@ from data_providers.market_details import (
 )
 from data_providers.ai_analyst import get_ada_analyst
 from data_providers.news_provider import NewsProvider
+from data_providers.bold_report import BoldReportProvider
+from components.pdf_generator import AdaPDFGenerator
 
 # Cấu hình trang
 st.set_page_config(
@@ -48,6 +50,60 @@ st.title("📊 Thông tin chi tiết theo thị trường")
 
 tz_name = st.session_state.get("timezone", "Asia/Ho_Chi_Minh")
 
+# PDF Export button in header
+col_header1, col_header2 = st.columns([3, 1])
+with col_header2:
+    if st.button("📄 Xuất PDF", key="export_pdf_page2"):
+        with st.spinner("Đang tạo PDF..."):
+            try:
+                pdf_gen = AdaPDFGenerator()
+                
+                # Collect data for PDF
+                gold_detail = build_detail("GC=F")
+                news_provider = NewsProvider()
+                news_items = news_provider.get_news(hours_back=24, max_items=10)
+                
+                market_data = {
+                    "gold": gold_detail.snapshot if gold_detail else {},
+                    "dxy": build_detail("DX-Y.NYB").snapshot,
+                    "us10y": build_detail("^TNX").snapshot,
+                }
+                
+                # Build news list safely
+                news_list = []
+                if news_items and isinstance(news_items, list):
+                    for item in news_items[:5]:
+                        if item and isinstance(item, dict):
+                            news_list.append({
+                                "title": item.get("title", "N/A"),
+                                "source": item.get("source", "Unknown")
+                            })
+                
+                technical_data = {
+                    "XAUUSD": {
+                        "last": gold_detail.snapshot.get("last", 0) if gold_detail.snapshot else 0,
+                        "trend": gold_detail.trade_plan.bias if gold_detail.trade_plan else "Neutral",
+                        "support": gold_detail.trade_plan.levels.get("S1", "N/A") if gold_detail.trade_plan else "N/A",
+                        "resistance": gold_detail.trade_plan.levels.get("R1", "N/A") if gold_detail.trade_plan else "N/A"
+                    }
+                }
+                
+                pdf_bytes = pdf_gen.generate_daily_report(
+                    market_data=market_data,
+                    news_list=news_list,
+                    technical_data=technical_data
+                )
+                
+                st.download_button(
+                    label="⬇️ Tải PDF",
+                    data=pdf_bytes,
+                    file_name=f"Ada_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                    mime="application/pdf"
+                )
+                st.success("✅ PDF đã sẵn sàng!")
+            except Exception as e:
+                st.error(f"Lỗi tạo PDF: {str(e)}")
+
 st.markdown("---")
 
 # Tabs
@@ -56,7 +112,8 @@ tabs = st.tabs([
     "💱 FX Majors",
     "₿ Crypto",
     "🛢️ Dầu",
-    "📈 Chỉ số"
+    "📈 Chỉ số",
+    "💰 ETF Flows"
 ])
 
 
@@ -545,6 +602,149 @@ with tabs[4]:
         if indices_overview:
             indices_df = pd.DataFrame(indices_overview)
             st.dataframe(indices_df, use_container_width=True, hide_index=True)
+
+
+# ============== TAB 6: ETF FLOWS (Bold.Report) ==============
+with tabs[5]:
+    st.markdown("## 💰 ETF Flows (Gold & Bitcoin)")
+    st.caption("Nguồn dữ liệu: [Bold.Report](https://bold.report/data-api)")
+    
+    bold_provider = BoldReportProvider()
+    
+    # Sub-tabs for Gold and Bitcoin
+    etf_tabs = st.tabs(["🥇 Gold ETF", "₿ Bitcoin ETF", "📊 So sánh"])
+    
+    with etf_tabs[0]:
+        st.markdown("### 🥇 Dòng tiền ETF Vàng")
+        
+        with st.spinner("Đang tải dữ liệu Gold ETF..."):
+            gold_flows = bold_provider.get_gold_flows()
+        
+        if gold_flows and "flows" in gold_flows:
+            flows = gold_flows.get("flows", [])
+            
+            if flows:
+                # Metrics
+                col1, col2, col3 = st.columns(3)
+                
+                # Calculate totals
+                total_inflow = sum(f.get("inflow", 0) or 0 for f in flows if f.get("inflow", 0) > 0)
+                total_outflow = sum(abs(f.get("outflow", 0) or 0) for f in flows if f.get("outflow", 0) < 0)
+                net_flow = total_inflow - total_outflow
+                
+                with col1:
+                    st.metric("Tổng Inflow", f"${total_inflow:,.0f}M")
+                
+                with col2:
+                    st.metric("Tổng Outflow", f"${total_outflow:,.0f}M")
+                
+                with col3:
+                    delta_color = "normal" if net_flow >= 0 else "inverse"
+                    st.metric("Net Flow", f"${net_flow:,.0f}M", 
+                             delta=f"{'🟢' if net_flow >= 0 else '🔴'}")
+                
+                # Data table
+                st.markdown("#### Chi tiết theo quỹ")
+                
+                flows_df = pd.DataFrame(flows)
+                if not flows_df.empty:
+                    display_cols = ["name", "ticker", "aum", "flow_1d", "flow_1w", "flow_1m"]
+                    available_cols = [c for c in display_cols if c in flows_df.columns]
+                    if available_cols:
+                        st.dataframe(flows_df[available_cols], use_container_width=True, hide_index=True)
+                    else:
+                        st.dataframe(flows_df.head(10), use_container_width=True, hide_index=True)
+            else:
+                st.info("Không có dữ liệu Gold ETF flows")
+        else:
+            st.warning("Không thể tải dữ liệu Gold ETF. Vui lòng thử lại sau.")
+    
+    with etf_tabs[1]:
+        st.markdown("### ₿ Dòng tiền ETF Bitcoin")
+        
+        with st.spinner("Đang tải dữ liệu Bitcoin ETF..."):
+            btc_flows = bold_provider.get_bitcoin_flows()
+        
+        if btc_flows and "flows" in btc_flows:
+            flows = btc_flows.get("flows", [])
+            
+            if flows:
+                # Metrics
+                col1, col2, col3 = st.columns(3)
+                
+                total_inflow = sum(f.get("inflow", 0) or 0 for f in flows if f.get("inflow", 0) > 0)
+                total_outflow = sum(abs(f.get("outflow", 0) or 0) for f in flows if f.get("outflow", 0) < 0)
+                net_flow = total_inflow - total_outflow
+                
+                with col1:
+                    st.metric("Tổng Inflow", f"${total_inflow:,.0f}M")
+                
+                with col2:
+                    st.metric("Tổng Outflow", f"${total_outflow:,.0f}M")
+                
+                with col3:
+                    st.metric("Net Flow", f"${net_flow:,.0f}M",
+                             delta=f"{'🟢' if net_flow >= 0 else '🔴'}")
+                
+                # Data table
+                st.markdown("#### Chi tiết theo quỹ")
+                
+                flows_df = pd.DataFrame(flows)
+                if not flows_df.empty:
+                    display_cols = ["name", "ticker", "aum", "flow_1d", "flow_1w", "flow_1m"]
+                    available_cols = [c for c in display_cols if c in flows_df.columns]
+                    if available_cols:
+                        st.dataframe(flows_df[available_cols], use_container_width=True, hide_index=True)
+                    else:
+                        st.dataframe(flows_df.head(10), use_container_width=True, hide_index=True)
+            else:
+                st.info("Không có dữ liệu Bitcoin ETF flows")
+        else:
+            st.warning("Không thể tải dữ liệu Bitcoin ETF. Vui lòng thử lại sau.")
+    
+    with etf_tabs[2]:
+        st.markdown("### 📊 So sánh Gold vs Bitcoin ETF")
+        
+        with st.spinner("Đang tải dữ liệu so sánh..."):
+            comparison = bold_provider.get_performance_comparison()
+        
+        if comparison:
+            col1, col2 = st.columns(2)
+            
+            gold_data = comparison.get("gold", {})
+            btc_data = comparison.get("bitcoin", {})
+            
+            with col1:
+                st.markdown("#### 🥇 Gold ETF")
+                st.metric("Tổng AUM", f"${gold_data.get('total_aum', 0):,.0f}M")
+                st.metric("Net Flow (1D)", f"${gold_data.get('flow_1d', 0):,.0f}M")
+                st.metric("Net Flow (1W)", f"${gold_data.get('flow_1w', 0):,.0f}M")
+                st.metric("Net Flow (1M)", f"${gold_data.get('flow_1m', 0):,.0f}M")
+            
+            with col2:
+                st.markdown("#### ₿ Bitcoin ETF")
+                st.metric("Tổng AUM", f"${btc_data.get('total_aum', 0):,.0f}M")
+                st.metric("Net Flow (1D)", f"${btc_data.get('flow_1d', 0):,.0f}M")
+                st.metric("Net Flow (1W)", f"${btc_data.get('flow_1w', 0):,.0f}M")
+                st.metric("Net Flow (1M)", f"${btc_data.get('flow_1m', 0):,.0f}M")
+            
+            # Insight
+            st.markdown("---")
+            st.markdown("#### 💡 Phân tích xu hướng")
+            
+            gold_1d = gold_data.get('flow_1d', 0)
+            btc_1d = btc_data.get('flow_1d', 0)
+            
+            if gold_1d > 0 and btc_1d > 0:
+                st.success("🟢 **Risk-off**: Dòng tiền vào cả Gold và BTC ETF, nhà đầu tư đang tìm kiếm tài sản thay thế.")
+            elif gold_1d > 0 and btc_1d < 0:
+                st.warning("🟡 **Flight to safety**: Dòng tiền chuyển từ BTC sang Gold, tâm lý phòng thủ.")
+            elif gold_1d < 0 and btc_1d > 0:
+                st.info("🔵 **Risk-on crypto**: Dòng tiền ưu tiên BTC hơn Gold, tâm lý tích cực với crypto.")
+            else:
+                st.error("🔴 **Risk-on equities**: Dòng tiền rút khỏi cả Gold và BTC, có thể đang chuyển sang cổ phiếu.")
+        else:
+            st.warning("Không thể tải dữ liệu so sánh. API có thể đang bảo trì.")
 
 
 # Sidebar
