@@ -328,6 +328,12 @@ with st.spinner("Đang tải dữ liệu báo cáo..."):
     news_provider = NewsProvider()
     news_items = news_provider.get_news(hours_back=24, max_items=8)
     
+    # Debug: Check news items
+    if not news_items or len(news_items) == 0:
+        st.warning("⚠️ Không lấy được tin tức mới. Đang sử dụng highlights từ market data.")
+        # Fallback to highlights if no news
+        news_items = []
+    
     # Market details
     gold_detail = build_detail("GC=F")
     
@@ -336,27 +342,38 @@ with st.spinner("Đang tải dữ liệu báo cáo..."):
 
 # Generate AI opening analysis
 opening_analysis = ""
-if ada_analyst.model and news_items is not None and len(news_items) > 0:
+if ada_analyst.model:
     try:
         # Convert DataFrame to list if needed
         if isinstance(news_items, pd.DataFrame):
             news_items = news_items.to_dict('records')
         
-        news_summary = "\n".join([f"- {item.get('title', 'N/A')}" for item in news_items[:5] if item])
+        # Use news if available, otherwise use highlights
+        if news_items and len(news_items) > 0:
+            news_summary = "\n".join([f"- {item.get('title', 'N/A')}" for item in news_items[:5] if item])
+        else:
+            highlights = overview_data.get('highlights', [])
+            news_summary = "\n".join([f"- {h}" for h in highlights[:5]]) if highlights else "Không có tin tức đáng chú ý"
+        
+        # Get risk sentiment values directly (they are floats, not dicts)
+        risk_sentiment = overview_data.get('risk_sentiment', {})
+        vix = risk_sentiment.get('vix', 0)
+        dxy = risk_sentiment.get('dxy', 0)
+        us10y = risk_sentiment.get('us10y', 0)
         
         prompt = f"""Bạn là Ada, chuyên gia phân tích thị trường tài chính.
 
-TIN TỨC QUA ĐÊM:
+THÔNG TIN THỊ TRƯỜNG:
 {news_summary}
 
 CHỈ SỐ RỦI RO:
-- VIX: {overview_data.get('risk_sentiment', {}).get('vix', {}).get('value', 0):.2f}
-- DXY: {overview_data.get('risk_sentiment', {}).get('dxy', {}).get('value', 0):.2f}
-- US10Y: {overview_data.get('risk_sentiment', {}).get('us10y', {}).get('value', 0):.2f}%
+- VIX: {vix:.2f}
+- DXY: {dxy:.2f}
+- US10Y: {us10y:.2f}%
 
 Viết 1 đoạn văn ngắn gọn (4-5 câu) NHẬN ĐỊNH ĐẦU NGÀY bằng tiếng Việt:
 - Tóm tắt diễn biến quan trọng qua đêm
-- Đánh giá tâm lý thị trường (risk-on/risk-off)
+- Đánh giá tâm lý thị trường (risk-on/risk-off) dựa trên VIX, DXY, US10Y
 - Nhận định xu hướng ngắn hạn cho phiên giao dịch hôm nay
 
 Viết chuyên nghiệp, rõ ràng, dễ hiểu cho môi giới CFDs."""
@@ -364,7 +381,10 @@ Viết chuyên nghiệp, rõ ràng, dễ hiểu cho môi giới CFDs."""
         response = ada_analyst.model.generate_content(prompt)
         opening_analysis = response.text.strip()
     except Exception as e:
-        opening_analysis = f"Thị trường đang trong giai đoạn quan sát với nhiều biến động. Các yếu tố vĩ mô và tin tức địa chính trị đang tác động đến tâm lý nhà đầu tư. Khuyến nghị theo dõi sát các chỉ số rủi ro và tin tức trong ngày."
+        # Better fallback using actual data
+        risk_sentiment = overview_data.get('risk_sentiment', {})
+        vix = risk_sentiment.get('vix', 0)
+        opening_analysis = f"Thị trường đang trong giai đoạn quan sát với VIX ở mức {vix:.2f}. Các yếu tố vĩ mô và tin tức địa chính trị đang tác động đến tâm lý nhà đầu tư. Khuyến nghị theo dõi sát các chỉ số rủi ro và diễn biến thị trường trong ngày."
 
 # ========== PAGE 1: TIN TỨC VÀ NHẬN ĐỊNH ==========
 page1_html = f"""
@@ -390,7 +410,7 @@ page1_html = f"""
 """
 
 # Add news items
-if news_items and isinstance(news_items, list):
+if news_items and isinstance(news_items, list) and len(news_items) > 0:
     for idx, item in enumerate(news_items[:6]):
         if item and isinstance(item, dict):
             title = html.escape(item.get('title', 'N/A'))[:100]  # Escape HTML characters
@@ -404,7 +424,18 @@ if news_items and isinstance(news_items, list):
             </div>
 """
 else:
-    page1_html += """
+    # Fallback to market highlights if no news available
+    highlights = overview_data.get('highlights', [])
+    if highlights:
+        for idx, highlight in enumerate(highlights[:6]):
+            page1_html += f"""
+            <div class="news-item">
+                <div class="news-title">{idx+1}. {html.escape(highlight)}</div>
+                <div class="news-meta">Nguồn: Market Data Analysis</div>
+            </div>
+"""
+    else:
+        page1_html += """
             <div class="news-item">
                 <div class="news-title">Đang cập nhật tin tức...</div>
             </div>
