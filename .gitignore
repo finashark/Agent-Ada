@@ -22,6 +22,7 @@ wheels/
 
 # Virtual environment
 venv/
+.venv/
 env/
 ENV/
 
@@ -30,6 +31,11 @@ ENV/
 .idea/
 *.swp
 *.swo
+*~
+
+# Backup files
+*.backup
+*_Old.py
 *~
 
 # Streamlit
@@ -41,6 +47,12 @@ Thumbs.db
 
 # Logs
 *.log
+*.txt
+!requirements.txt
+
+# Test files
+test_*.py
+check_*.py
 
 # Data
 *.csv

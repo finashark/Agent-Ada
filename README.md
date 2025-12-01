@@ -87,11 +87,14 @@ Agent Ada/
 │   ├── copy.py                      # Copy to clipboard
 │   ├── timestamp.py                 # Timestamp với timezone
 │   ├── session_badge.py             # Phiên giao dịch
+│   ├── session_cache.py             # Session management
 │   └── exporters.py                 # Export CSV/JSON
 ├── data_providers/
 │   ├── __init__.py
 │   ├── overview.py                  # Data cho Trang 1
-│   └── market_details.py            # Data cho Trang 2
+│   ├── market_details.py            # Data cho Trang 2
+│   ├── news_provider.py             # NewsAPI integration
+│   └── ai_analyst.py                # Google Gemini AI
 ├── schemas.py                       # Pydantic models
 ├── styles.py                        # Formatting utilities
 ├── requirements.txt
